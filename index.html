@@ -73,72 +73,77 @@
     aviso.innerHTML = "Consultando...";
 
     try {
-        // 1. Consultar la pestaña 'Miembros'
-        const response = await fetch(`${URL_API}/tabs/Miembros`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                // 1. Consultar la pestaña 'Miembros'
+                const response = await fetch(`${URL_API}/tabs/Miembros`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const miembros = await response.json();
+                
+                // Buscar al miembro por documento
+                const socio = miembros.find(m => m.Documento.toString().trim() === documento);
+
+                if (!socio) {
+                    mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
+                    registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
+                    return;
+                }
+
+                // --- TRATAMIENTO DE LA FECHA DE PAGO ---
+                const fechaTexto = socio["Fecha de Último Pago"].toString().trim();
+                let fechaPago;
+
+                if (fechaTexto.includes("/")) {
+                    const partes = fechaTexto.split("/");
+                    // Año, Mes (0-11), Día
+                    fechaPago = new Date(partes[2], partes[1] - 1, partes[0]);
+                } else {
+                    fechaPago = new Date(fechaTexto);
+                }
+
+                // --- CÁLCULO DE VENCIMIENTO SEGÚN EL PLAN ---
+                const plan = socio["Tipo de Plan"];
+                let fechaVencimiento = new Date(fechaPago);
+
+                if (plan === "Semanal") {
+                    fechaVencimiento.setDate(fechaPago.getDate() + 7);
+                } else if (plan === "Quincenal") {
+                    fechaVencimiento.setDate(fechaPago.getDate() + 15);
+                } else if (plan === "Mensual") {
+                    fechaVencimiento.setMonth(fechaPago.getMonth() + 1);
+                } else if (plan === "Semestral") {
+                    fechaVencimiento.setMonth(fechaPago.getMonth() + 6);
+                } else if (plan === "Anual") {
+                    fechaVencimiento.setFullYear(fechaPago.getFullYear() + 1);
+                }
+
+                // Normalizar horas para comparar limpiamente solo los días
+                const hoy = new Date();
+                hoy.setHours(0,0,0,0);
+                fechaVencimiento.setHours(0,0,0,0);
+
+                const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
+                const fVenceStr = fechaVencimiento.toLocaleDateString('es-CO', opcionesFecha);
+
+                // --- VALIDACIÓN Y MUESTRA DE RESULTADO ---
+                if (fechaVencimiento >= hoy) {
+                    mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>Vence: ${fVenceStr}</small>`, socio["Nombre Completo"]);
+                    registrarLog(documento, socio["Nombre Completo"], "verde", `Autorizado - Vence: ${fVenceStr}`);
+                } else {
+                    mostrarResultado("rojo", `MENSUALIDAD VENCIDA (${fVenceStr})`, socio["Nombre Completo"]);
+                    registrarLog(documento, socio["Nombre Completo"], "rojo", `Vencido desde el ${fVenceStr}`);
+                }
+
+            } catch (error) {
+                console.error("Error detallado:", error);
+                mostrarResultado("rojo", "Error al conectar con la base de datos", "Error Técnico");
             }
-        });
-        
-        const miembros = await response.json();
-        
-        // Buscar al miembro por documento
-        const socio = miembros.find(m => m.Documento.toString().trim() === documento);
-
-        if (!socio) {
-            mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
-            registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
-            return;
         }
 
-        // --- CORRECCIÓN DE FECHA CRUCIAL ---
-        // Extraemos el texto de la fecha (Ej: "15/05/2026" o "2026-05-15")
-        const fechaTexto = socio["Fecha de Último Pago"].toString().trim();
-        let fechaPago;
-
-        if (fechaTexto.includes("/")) {
-            // Si viene en formato DD/MM/AAAA (Latinoamérica / Google Sheets estándar)
-            const partes = fechaTexto.split("/");
-            // JavaScript cuenta los meses de 0 a 11, por eso restamos 1 al mes
-            fechaPago = new Date(partes[2], partes[1] - 1, partes[0]);
-        } else {
-            // Si viene en formato ISO estándar (AAAA-MM-DD)
-            fechaPago = new Date(fechaTexto);
-        }
-        // ------------------------------------
-
-        const plan = socio["Tipo de Plan"];
-        let fechaVencimiento = new Date(fechaPago);
-
-        if (plan === "Semanal") fechaVencimiento.setDate(fechaPago.getDate() + 7);
-        else if (plan === "Quincenal") fechaVencimiento.setDate(fechaPago.getDate() + 15);
-        else if (plan === "Mensual") fechaVencimiento.setMonth(fechaPago.getMonth() + 1);
-        else if (plan === "Semestral") fechaVencimiento.setMonth(fechaPago.getMonth() + 6);
-        else if (plan === "Anual") fechaVencimiento.setFullYear(fechaPago.getFullYear() + 1);
-
-        // Forzar a que la comparación ignore las horas (solo compare días)
-        const hoy = new Date();
-        hoy.setHours(0,0,0,0);
-        fechaVencimiento.setHours(0,0,0,0);
-
-        const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
-        const fVenceStr = fechaVencimiento.toLocaleDateString('es-CO', opcionesFecha);
-
-        // 3. Validar estado del usuario
-        if (fechaVencimiento >= hoy) {
-            mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>Vence: ${fVenceStr}</small>`, socio["Nombre Completo"]);
-            registrarLog(documento, socio["Nombre Completo"], "verde", `Autorizado - Vence: ${fVenceStr}`);
-        } else {
-            mostrarResultado("rojo", `MENSUALIDAD VENCIDA (${fVenceStr})`, socio["Nombre Completo"]);
-            registrarLog(documento, socio["Nombre Completo"], "rojo", `Vencido desde el ${fVenceStr}`);
-        }
-
-    } catch (error) {
-        console.error("Error detallado:", error);
-        mostrarResultado("rojo", "Error al conectar con la base de datos", "Error Técnico");
-    }
         function mostrarResultado(status, mensaje, nombre) {
             if (status === "verde") {
                 body.style.backgroundColor = "var(--bg-verde)";
@@ -151,7 +156,6 @@
             setTimeout(resetearPantalla, 3500);
         }
 
-        // 3. Registrar de forma automática el intento en la pestaña 'Logs'
         async function registrarLog(doc, nombre, status, mensaje) {
             try {
                 await fetch(`${URL_API}/tabs/Logs`, {
@@ -165,7 +169,9 @@
                         "Motivo": mensaje
                     })
                 });
-            } catch (e) { console.error("Error guardando log", e); }
+            } catch (e) { 
+                console.error("Error guardando log", e); 
+            }
         }
 
         function resetearPantalla() {
