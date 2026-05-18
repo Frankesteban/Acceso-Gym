@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Acceso - Gym</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;750&display=swap');
         :root {
-            --bg-default: #1e1e24;
+            --bg-default: #121214;/* Gris ultra oscuro, casi negro para el fondo de pantalla */
             --bg-verde: #2ec4b6;
             --bg-rojo: #e63946;
             --text-light: #ffffff;
+            --branding-orange: #ff8c00; /* El naranja vibrante corporativo de Vida Fit */
         }
         body {
             margin: 0; padding: 0;
@@ -20,18 +22,21 @@
         }
         .contenedor {
             text-align: center; width: 90%; max-width: 600px; padding: 40px;
-            border-radius: 15px; background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px; background: rgba(0, 0, 0, 0.65);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        h1 { font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
         .subtitulo { font-size: 1.1rem; color: #ccc; margin-bottom: 30px; }
         #documentoInput {
-            background: transparent; border: 2px solid #ffffff; border-radius: 8px;
+            background: transparent; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px;
             color: white; font-size: 2rem; padding: 10px; text-align: center; width: 80%;
             outline: none; margin-bottom: 20px;
         }
-        #documentoInput:focus { border-color: #f1faee; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+        #documentoInput:focus {
+    border-color: var(--branding-orange);
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.4); /* Brillo naranja difuminado */
+}
         .pantalla-aviso { margin-top: 20px; padding: 20px; border-radius: 10px; font-size: 1.8rem; font-weight: bold; display: none; }
         .nombre-usuario { font-size: 2.2rem; margin-top: 10px; display: block; }
     </style>
