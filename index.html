@@ -73,7 +73,7 @@
     aviso.innerHTML = "Consultando...";
 
     try {
-        // 1. Consultar la pestaña 'Miembros' a través de Sheet.best con cabeceras correctas
+        // 1. Consultar la pestaña 'Miembros'
         const response = await fetch(`${URL_API}/tabs/Miembros`, {
             method: 'GET',
             headers: {
@@ -90,11 +90,25 @@
         if (!socio) {
             mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
             registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
-            return; // Detiene la ejecución aquí si no existe
+            return;
         }
 
-        // 2. Calcular Vencimiento según el Plan
-        const fechaPago = new Date(socio["Fecha de ultimo Pago"]);
+        // --- CORRECCIÓN DE FECHA CRUCIAL ---
+        // Extraemos el texto de la fecha (Ej: "15/05/2026" o "2026-05-15")
+        const fechaTexto = socio["Fecha de Último Pago"].toString().trim();
+        let fechaPago;
+
+        if (fechaTexto.includes("/")) {
+            // Si viene en formato DD/MM/AAAA (Latinoamérica / Google Sheets estándar)
+            const partes = fechaTexto.split("/");
+            // JavaScript cuenta los meses de 0 a 11, por eso restamos 1 al mes
+            fechaPago = new Date(partes[2], partes[1] - 1, partes[0]);
+        } else {
+            // Si viene en formato ISO estándar (AAAA-MM-DD)
+            fechaPago = new Date(fechaTexto);
+        }
+        // ------------------------------------
+
         const plan = socio["Tipo de Plan"];
         let fechaVencimiento = new Date(fechaPago);
 
@@ -104,7 +118,11 @@
         else if (plan === "Semestral") fechaVencimiento.setMonth(fechaPago.getMonth() + 6);
         else if (plan === "Anual") fechaVencimiento.setFullYear(fechaPago.getFullYear() + 1);
 
+        // Forzar a que la comparación ignore las horas (solo compare días)
         const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        fechaVencimiento.setHours(0,0,0,0);
+
         const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
         const fVenceStr = fechaVencimiento.toLocaleDateString('es-CO', opcionesFecha);
 
@@ -118,12 +136,9 @@
         }
 
     } catch (error) {
-        // Aquí estaba el problema, ahora el catch cierra perfectamente el try
         console.error("Error detallado:", error);
         mostrarResultado("rojo", "Error al conectar con la base de datos", "Error Técnico");
     }
-}
-
         function mostrarResultado(status, mensaje, nombre) {
             if (status === "verde") {
                 body.style.backgroundColor = "var(--bg-verde)";
