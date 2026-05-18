@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Acceso - Gym</title>
+    <style>
+        :root {
+            --bg-default: #1e1e24;
+            --bg-verde: #2ec4b6;
+            --bg-rojo: #e63946;
+            --text-light: #ffffff;
+        }
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-default); color: var(--text-light);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100vh; transition: background-color 0.4s ease; overflow: hidden;
+        }
+        .contenedor {
+            text-align: center; width: 90%; max-width: 600px; padding: 40px;
+            border-radius: 15px; background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .subtitulo { font-size: 1.1rem; color: #ccc; margin-bottom: 30px; }
+        #documentoInput {
+            background: transparent; border: 2px solid #ffffff; border-radius: 8px;
+            color: white; font-size: 2rem; padding: 10px; text-align: center; width: 80%;
+            outline: none; margin-bottom: 20px;
+        }
+        #documentoInput:focus { border-color: #f1faee; box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+        .pantalla-aviso { margin-top: 20px; padding: 20px; border-radius: 10px; font-size: 1.8rem; font-weight: bold; display: none; }
+        .nombre-usuario { font-size: 2.2rem; margin-top: 10px; display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor" id="tarjeta">
+        <h1>Control de Acceso</h1>
+        <p class="subtitulo">Por favor, digite su documento de identidad</p>
+        
+        <form id="formularioAcceso" onsubmit="procesarAcceso(event)">
+            <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
+        </form>
+
+        <div id="aviso" class="pantalla-aviso"></div>
+    </div>
+
+    <script>
+        // === CONFIGURACIÓN ===
+        // PEGA AQUÍ TU URL DE SHEET.BEST
+        const URL_API = "https://api.sheetbest.com/sheets/71ba18cb-b912-436d-ac37-ddf296ea3049"; 
+
+        const body = document.body;
+        const input = document.getElementById('documentoInput');
+        const aviso = document.getElementById('aviso');
+
+        document.addEventListener('click', () => input.focus());
+        window.addEventListener('load', () => input.focus());
+
+        async function procesarAcceso(event) {
+    event.preventDefault();
+    const documento = input.value.trim();
+    if (!documento) return;
+
+    // Interfaz en modo de espera
+    input.disabled = true;
+    aviso.style.display = "block";
+    aviso.style.background = "#4a4e69";
+    aviso.innerHTML = "Consultando...";
+
+    try {
+        // 1. Consultar la pestaña 'Miembros' a través de Sheet.best con cabeceras correctas
+        const response = await fetch(`${URL_API}/tabs/Miembros`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const miembros = await response.json();
+        
+        // Buscar al miembro por documento
+        const socio = miembros.find(m => m.Documento.toString().trim() === documento);
+
+        if (!socio) {
+            mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
+            registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
+            return; // Detiene la ejecución aquí si no existe
+        }
+
+        // 2. Calcular Vencimiento según el Plan
+        const fechaPago = new Date(socio["Fecha de Último Pago"]);
+        const plan = socio["Tipo de Plan"];
+        let fechaVencimiento = new Date(fechaPago);
+
+        if (plan === "Semanal") fechaVencimiento.setDate(fechaPago.getDate() + 7);
+        else if (plan === "Quincenal") fechaVencimiento.setDate(fechaPago.getDate() + 15);
+        else if (plan === "Mensual") fechaVencimiento.setMonth(fechaPago.getMonth() + 1);
+        else if (plan === "Semestral") fechaVencimiento.setMonth(fechaPago.getMonth() + 6);
+        else if (plan === "Anual") fechaVencimiento.setFullYear(fechaPago.getFullYear() + 1);
+
+        const hoy = new Date();
+        const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        const fVenceStr = fechaVencimiento.toLocaleDateString('es-CO', opcionesFecha);
+
+        // 3. Validar estado del usuario
+        if (fechaVencimiento >= hoy) {
+            mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>Vence: ${fVenceStr}</small>`, socio["Nombre Completo"]);
+            registrarLog(documento, socio["Nombre Completo"], "verde", `Autorizado - Vence: ${fVenceStr}`);
+        } else {
+            mostrarResultado("rojo", `MENSUALIDAD VENCIDA (${fVenceStr})`, socio["Nombre Completo"]);
+            registrarLog(documento, socio["Nombre Completo"], "rojo", `Vencido desde el ${fVenceStr}`);
+        }
+
+    } catch (error) {
+        // Aquí estaba el problema, ahora el catch cierra perfectamente el try
+        console.error("Error detallado:", error);
+        mostrarResultado("rojo", "Error al conectar con la base de datos", "Error Técnico");
+    }
+}
+
+        function mostrarResultado(status, mensaje, nombre) {
+            if (status === "verde") {
+                body.style.backgroundColor = "var(--bg-verde)";
+                aviso.innerHTML = `¡BIENVENIDO!<span class='nombre-usuario'>${nombre}</span><br><small>${mensaje}</small>`;
+            } else {
+                body.style.backgroundColor = "var(--bg-rojo)";
+                aviso.innerHTML = `${mensaje}<span class='nombre-usuario'>${nombre}</span>`;
+            }
+            aviso.style.background = "rgba(0,0,0,0.2)";
+            setTimeout(resetearPantalla, 3500);
+        }
+
+        // 3. Registrar de forma automática el intento en la pestaña 'Logs'
+        async function registrarLog(doc, nombre, status, mensaje) {
+            try {
+                await fetch(`${URL_API}/tabs/Logs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        "Fecha y Hora": new Date().toLocaleString('es-CO'),
+                        "Documento": doc,
+                        "Nombre": nombre,
+                        "Resultado": status.toUpperCase(),
+                        "Motivo": mensaje
+                    })
+                });
+            } catch (e) { console.error("Error guardando log", e); }
+        }
+
+        function resetearPantalla() {
+            input.disabled = false;
+            input.value = "";
+            input.focus();
+            body.style.backgroundColor = "var(--bg-default)";
+            aviso.style.display = "none";
+        }
+    </script>
+</body>
+</html>
