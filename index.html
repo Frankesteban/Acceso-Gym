@@ -92,8 +92,8 @@
                 const miembros = await response.json();
                 
                 // Buscar al miembro por documento
-                const socio = miembros.find(m => m.Documento.toString().trim() === documento);
-
+                const socio = miembros.find(m => m.Documento && m.Documento.toString().trim() === documento);
+        
                 if (!socio) {
                     mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
                     registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
