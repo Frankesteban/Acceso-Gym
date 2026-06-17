@@ -106,12 +106,21 @@
         <div id="aviso" class="pantalla-aviso"></div>
     </div>
 
-    <div id="modalAdmin" class="modal">
-        <div class="modal-contenido">
-            <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
-            <h2 id="modalTitulo">Gestor de Datos</h2>
-            
-            <form id="formRegistro" onsubmit="guardarRegistro(event)">
+   <div id="modalAdmin" class="modal">
+    <div class="modal-contenido">
+        <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
+        <h2 id="modalTitulo">Gestor de Datos</h2> 
+        
+        <div id="seccionLogin" style="text-align: center; padding: 10px 0;">
+            <p style="color: #ccc; margin-bottom: 15px;">Ingrese la clave administrativa para continuar:</p>
+            <div class="form-group">
+                <input type="password" id="adminClave" placeholder="••••••••" style="text-align: center; font-size: 1.2rem;">
+            </div>
+            <button type="button" class="btn-block" onclick="verificarClaveAdmin()">Ingresar al Panel</button>
+        </div>
+
+        <form id="formRegistro" onsubmit="guardarRegistro(event)">
+            <div id="camposFormulario" style="display: none;">
                 <div class="form-group">
                     <label id="lblDocumento" for="regDocumento">Identificador Único</label>
                     <input type="text" id="regDocumento" required autocomplete="off">
@@ -251,7 +260,7 @@
             aviso.style.display = "none";
         }
 
-        // FUNCIÓN PREMIUM PARA MOSTRAR MENSAJES FLOTANTES (TOAST)
+        // FUNCIÓN  MENSAJES FLOTANTES (TOAST)
         function mostrarToast(tipo, mensaje) {
             const toast = document.getElementById('toast');
             const icono = document.getElementById('toastIcono');
@@ -267,14 +276,12 @@
         }
 
         // ⚙️ GESTIÓN MODAL
-        function abrirAdmin() {
-            const clave = prompt("Por favor, digite la clave de seguridad administrativa:");
-            if (clave === "AccesoGym26") {
-                modalAdmin.classList.add('visible');
-                document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
-            } else if (clave !== null) {
-                mostrarToast('error', 'Clave incorrecta. Acceso denegado.');
-            }
+            function abrirAdmin() {
+        // Mostramos la ventana modal
+        modalAdmin.classList.add('visible');
+        document.getElementById('seccionLogin').style.display = 'block';
+        document.getElementById('camposFormulario').style.display = 'none';
+        setTimeout(() => document.getElementById('adminClave').focus(), 100);
         }
 
         function cerrarAdmin() {
@@ -282,6 +289,53 @@
             document.getElementById('formRegistro').reset();
             input.focus();
         }
+        async function verificarClaveAdmin() {
+        const claveInput = document.getElementById('adminClave');
+        const btnLogin = document.querySelector('#seccionLogin .btn-block');
+    
+        if (!claveInput.value.trim()) return;
+
+            // Bloqueamos el botón temporalmente
+        btnLogin.disabled = true;
+        btnLogin.textContent = "Verificando...";
+
+        try {
+        // Enviamos la clave al backend para validación segura
+        const respuesta = await fetch(URL_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                accion: 'validar_credencial',
+                clave: claveInput.value.trim(),
+                cliente: clienteActual
+            })
+        });
+        
+        const data = await respuesta.json();
+
+        if (data.status === "success" && data.autorizado === true) {
+            // Clave correcta: Revelamos el formulario modular
+            document.getElementById('seccionLogin').style.display = 'none';
+            document.getElementById('camposFormulario').style.display = 'block';
+            
+            document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+            document.getElementById('regDocumento').focus();
+            
+            claveInput.value = ""; 
+        } else {
+            mostrarToast('error', data.message || 'Clave incorrecta. Acceso denegado.');
+            claveInput.value = "";
+            claveInput.focus();
+            }
+        } catch (error) {
+        console.error(error);
+        mostrarToast('error', 'Error técnico al validar credenciales.');
+        } finally {
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Ingresar al Panel";
+            }
+        }
+        
 
         // 💾 GUARDAR / RENOVACIÓN (POST)
         async function guardarRegistro(event) {
