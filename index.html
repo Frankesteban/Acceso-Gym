@@ -206,6 +206,38 @@
                 procesarAcceso();
             }
         });
+        document.getElementById('regDocumento').addEventListener('blur', async function() {
+            const documento = this.value.trim();
+            if (!documento) return;
+
+            const lblNombre = document.getElementById('lblNombre');
+            const inputNombre = document.getElementById('regNombre');
+            const btnSubmit = document.getElementById('btnSubmitAdmin');
+
+        lblNombre.textContent = "Buscando identificación...";
+
+            try {
+            // Reutilizamos tu API de consulta
+            const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+            const data = await respuesta.json();
+
+            if (data.status === "success" && data.encontrado) {
+            // El usuario YA existe: Autocompletamos y preparamos para actualizar
+            inputNombre.value = data.nombre;
+            lblNombre.textContent = "Nombre Completo (Registrado - Puedes modificarlo)";
+            btnSubmit.textContent = "Actualizar Datos del Socio";
+            mostrarToast('success', 'Socio encontrado. Modo edición activo.');
+            } else {
+            // El usuario NO existe: Dejamos limpio para registro nuevo
+            inputNombre.value = "";
+            lblNombre.textContent = "Nombre Completo del Socio (Nuevo Registro)";
+            btnSubmit.textContent = ctx.btnSubmit; // Vuelve al texto por defecto del diccionario
+            }
+                } catch (error) {
+            console.error(error);
+            lblNombre.textContent = "Nombre Completo del Socio";
+                    }
+        });
 
         // 🔍 CONSULTAR REGISTRO (GET)
         async function procesarAcceso() {
@@ -285,10 +317,16 @@
         }
 
         function cerrarAdmin() {
-            modalAdmin.classList.remove('visible');
-            document.getElementById('formRegistro').reset();
-            input.focus();
+        modalAdmin.classList.remove('visible');
+        document.getElementById('formRegistro').reset();
+    
+        // Dejar los textos por defecto del diccionario al cerrar
+        document.getElementById('lblNombre').textContent = ctx.lblNombre;
+        document.getElementById('btnSubmitAdmin').textContent = ctx.btnSubmit;
+    
+        input.focus();
         }
+        
         async function verificarClaveAdmin() {
         const claveInput = document.getElementById('adminClave');
         const btnLogin = document.querySelector('#seccionLogin .btn-block');
