@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Acceso - Gym</title>
+    <title>Sistema de Validación y Control</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;750&display=swap');
         :root {
-            --bg-default: #121214;/* Gris ultra oscuro, casi negro para el fondo de pantalla */
+            --bg-default: #121214; /* Gris ultra oscuro original */
             --bg-verde: #2ec4b6;
             --bg-rojo: #e63946;
             --text-light: #ffffff;
-            --branding-orange: #ff8c00; /* El naranja vibrante corporativo de Vida Fit */
+            --branding-orange: #ff8c00; /* Naranja corporativo */
         }
         body {
             margin: 0; padding: 0;
@@ -19,6 +19,7 @@
             background-color: var(--bg-default); color: var(--text-light);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             height: 100vh; transition: background-color 0.4s ease; overflow: hidden;
+            position: relative;
         }
         .contenedor {
             text-align: center; width: 90%; max-width: 600px; padding: 40px;
@@ -26,7 +27,6 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        
         h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
         .subtitulo { font-size: 1.1rem; color: #ccc; margin-bottom: 30px; }
         #documentoInput {
@@ -35,84 +35,192 @@
             outline: none; margin-bottom: 20px;
         }
         #documentoInput:focus {
-    border-color: var(--branding-orange);
-    box-shadow: 0 0 15px rgba(255, 140, 0, 0.4); /* Brillo naranja difuminado */
-}
+            border-color: var(--branding-orange);
+            box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+        }
         .pantalla-aviso { margin-top: 20px; padding: 20px; border-radius: 10px; font-size: 1.8rem; font-weight: bold; display: none; }
         .nombre-usuario { font-size: 2.2rem; margin-top: 10px; display: block; }
+
+        /* Estilos del Botón Flotante Administrativo (Agnóstico) */
+        .btn-admin {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer;
+            font-size: 0.9rem; font-weight: bold; transition: 0.3s; z-index: 10;
+        }
+        .btn-admin:hover { background: var(--branding-orange); border-color: var(--branding-orange); }
+
+        /* Estilos de la Ventana Modal (Panel de Control Superpuesto) */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.3s ease; z-index: 100;
+        }
+        .modal.visible { opacity: 1; pointer-events: auto; }
+        .modal-contenido {
+            background: #1c1c1e; padding: 30px; border-radius: 12px;
+            width: 90%; max-width: 450px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-contenido h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; font-size: 0.9rem; color: #aaa; margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px; box-sizing: border-box; background: #2c2c2e;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 1rem; outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--branding-orange); }
+        .btn-block { width: 100%; padding: 12px; background: var(--branding-orange); border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
+        .btn-block:hover { background: #e07b00; }
+        .btn-cerrar { background: transparent; border: none; color: #aaa; cursor: pointer; float: right; font-size: 1.2rem; }
+        .btn-cerrar:hover { color: white; }
     </style>
 </head>
 <body>
 
+    <button class="btn-admin" id="btnAdmin" onclick="abrirAdmin()">⚙️ Panel Control</button>
+
     <div class="contenedor" id="tarjeta">
-        <img src="https://acceso-gym.vercel.app/logo-vidafit.png" alt="Logo Vida Fit" style="max-width: 220px; margin-bottom: 20px; display: inline-block;">
-        <h1>Control de Acceso Vida Fit</h1>
-        <p class="subtitulo">Por favor, digite su documento de identidad</p>
+        <img src="https://acceso-gym.vercel.app/logo-vidafit.png" alt="Logo Cliente" style="max-width: 220px; margin-bottom: 20px; display: inline-block;">
+        <h1 id="mainTitulo">Cargando Sistema...</h1>
+        <p class="subtitulo" id="mainSubtitulo">Por favor espere...</p>
         
         <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
 
         <div id="aviso" class="pantalla-aviso"></div>
     </div>
 
+    <div id="modalAdmin" class="modal">
+        <div class="modal-contenido">
+            <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
+            <h2 id="modalTitulo">Gestor de Datos</h2>
+            
+            <form id="formRegistro" onsubmit="guardarRegistro(event)">
+                <div class="form-group">
+                    <label id="lblDocumento" for="regDocumento">Identificador Único</label>
+                    <input type="text" id="regDocumento" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label id="lblNombre" for="regNombre">Nombre / Razón Social</label>
+                    <input type="text" id="regNombre" placeholder="Dejar vacío si ya existe para actualizar">
+                </div>
+                <div class="form-group">
+                    <label id="lblCategoria" for="regCategoria">Categoría / Tipo de Plan</label>
+                    <select id="regCategoria">
+                        <option value="Semanal">Semanal / Corto</option>
+                        <option value="Quincenal">Quincenal / Medio</option>
+                        <option value="Mes" selected>Mensual / Estándar</option>
+                        <option value="Semestral">Semestral / Avanzado</option>
+                        <option value="Anual">Anual / Premium</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="lblFecha" for="regFecha">Fecha de Vigencia / Pago</label>
+                    <input type="date" id="regFecha" required>
+                </div>
+                <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar Cambios</button>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // 1. URL de tu nueva API en SiteGround
+        // 1. URL de la API en SiteGround (Ya soporta GET y POST)
         const URL_API = "https://frankegonzalez.com/api/control-acceso/api.php";
+
+        // ===================================================
+        // MACO CONFIGURACIÓN MULTI-TENANT (FUTUROS PROYECTOS)
+        // ===================================================
+        const DIACCIONARIO_TENANTS = {
+            "vidafit": {
+                titulo: "Control de Acceso Vida Fit",
+                subtitulo: "Por favor, digite su documento de identidad",
+                btnAdmin: "⚙️ Gestión Socios",
+                modalTitulo: "Panel Administrativo - Vida Fit",
+                lblDocumento: "Documento de Identidad (CC)",
+                lblNombre: "Nombre Completo del Socio",
+                lblCategoria: "Tipo de Plan Asignado",
+                lblFecha: "Fecha de Pago / Inscripción",
+                btnSubmit: "Guardar / Registrar Socio"
+            },
+            "default": {
+                titulo: "Sistema de Validación Centralizado",
+                subtitulo: "Por favor, ingrese el código de verificación",
+                btnAdmin: "⚙️ Panel Control",
+                modalTitulo: "Gestor de Datos Genérico",
+                lblDocumento: "Identificador Único",
+                lblNombre: "Nombre / Descripción",
+                lblCategoria: "Categoría del Registro",
+                lblFecha: "Fecha de Vigencia",
+                btnSubmit: "Confirmar Registro"
+            }
+        };
+
+        // Definimos el cliente actual (En producción podrías leerlo dinámicamente de la URL)
+        const clienteActual = "vidafit"; 
+        const ctx = DIACCIONARIO_TENANTS[clienteActual] || DIACCIONARIO_TENANTS["default"];
+
+        // Inyectamos los textos dinámicos según el contexto del proyecto elegido
+        document.getElementById("mainTitulo").textContent = ctx.titulo;
+        document.getElementById("mainSubtitulo").textContent = ctx.subtitulo;
+        document.getElementById("btnAdmin").textContent = ctx.btnAdmin;
+        document.getElementById("modalTitulo").textContent = ctx.modalTitulo;
+        document.getElementById("lblDocumento").textContent = ctx.lblDocumento;
+        document.getElementById("lblNombre").textContent = ctx.lblNombre;
+        document.getElementById("lblCategoria").textContent = ctx.lblCategoria;
+        document.getElementById("lblFecha").textContent = ctx.lblFecha;
+        document.getElementById("btnSubmitAdmin").textContent = ctx.btnSubmit;
 
         const body = document.body;
         const input = document.getElementById('documentoInput');
         const aviso = document.getElementById('aviso');
+        const modalAdmin = document.getElementById('modalAdmin');
 
-        // Mantener el foco en el input siempre
-        document.addEventListener('click', () => input.focus());
+        // Foco automático inteligente
+        document.addEventListener('click', (e) => {
+            if (!modalAdmin.classList.contains('visible') && e.target.id !== 'btnAdmin') {
+                input.focus();
+            }
+        });
         window.addEventListener('load', () => input.focus());
 
-        // Escuchar la tecla Enter en el campo de texto de forma limpia
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 procesarAcceso();
             }
         });
 
-        // FUNCIÓN PRINCIPAL: Conectada a tu servidor MySQL en SiteGround
+        // 🔍 CONSULTAR REGISTRO (GET)
         async function procesarAcceso() {
             const documento = input.value.trim();
             if (!documento) return;
 
-            // Interfaz en modo de espera
             input.disabled = true;
             aviso.style.display = "block";
             aviso.style.background = "#4a4e69";
             aviso.innerHTML = "Consultando...";
 
             try {
-                // Hacemos la petición real con rompe-caché dinámico (_=...)
-                const urlFinal = `${URL_API}?documento=${documento}&cliente=vidafit&_=${new Date().getTime()}`;
-                const respuesta = await fetch(urlFinal);
+                const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
                     if (data.encontrado) {
-                        // El socio existe en MySQL: evaluamos lo calculado por PHP
                         if (data.resultado === "Autorizado") {
                             mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
                         } else {
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
                         }
                     } else {
-                        // El documento no existe en MySQL
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
                     }
                 } else {
-                    throw new Error(data.message || "Error interno del backend");
+                    throw new Error(data.message);
                 }
-
             } catch (error) {
-                console.error("Error en la petición:", error);
-                mostrarResultado("rojo", "No se pudo conectar con el servidor de control de acceso.", "Error Técnico");
+                console.error(error);
+                mostrarResultado("rojo", "No se pudo conectar con el servidor.", "Error Técnico");
             }
         }
 
-        // Pinta la pantalla usando tus estilos originales estéticos
         function mostrarResultado(status, mensaje, nombre) {
             if (status === "verde") {
                 body.style.backgroundColor = "var(--bg-verde)";
@@ -122,10 +230,9 @@
                 aviso.innerHTML = `${mensaje}<span class='nombre-usuario'>${nombre}</span>`;
             }
             aviso.style.background = "rgba(0,0,0,0.2)";
-            setTimeout(resetearPantalla, 4000); // Se restablece solo a los 4 segundos
+            setTimeout(resetearPantalla, 3500);
         }
 
-        // Limpia y restablece la recepción para el siguiente socio
         function resetearPantalla() {
             input.disabled = false;
             input.value = "";
@@ -133,7 +240,65 @@
             body.style.backgroundColor = "var(--bg-default)";
             aviso.style.display = "none";
         }
+
+        // ⚙️ CONTROL DE LA VENTANA DE GESTIÓN (MODAL)
+        function abrirAdmin() {
+            const clave = prompt("Por favor, digite la clave de seguridad administrativa:");
+            if (clave === "AccesoGym26") {
+                modalAdmin.classList.add('visible');
+                // Setea por defecto la fecha de hoy en el input date
+                document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+            } else if (clave !== null) {
+                alert("Clave incorrecta. Acceso denegado.");
+            }
+        }
+
+        function cerrarAdmin() {
+            modalAdmin.classList.remove('visible');
+            document.getElementById('formRegistro').reset();
+            input.focus();
+        }
+
+        // 💾 PROCESAR GUARDADO O ACTUALIZACIÓN (POST)
+        async function guardarRegistro(event) {
+            event.preventDefault();
+            
+            const btnSubmit = document.getElementById('btnSubmitAdmin');
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Procesando...";
+
+            const payload = {
+                documento: document.getElementById('regDocumento').value.trim(),
+                nombre: document.getElementById('regNombre').value.trim(),
+                tipo_plan: document.getElementById('regCategoria').value,
+                fecha_pago: document.getElementById('regFecha').value, // Formato YYYY-MM-DD del input nativo
+                cliente: clienteActual
+            };
+
+            try {
+                const respuesta = await fetch(URL_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await respuesta.json();
+
+                if (data.status === "success") {
+                    alert(data.message);
+                    cerrarAdmin();
+                } else {
+                    alert("Error: " + data.message);
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = ctx.btnSubmit;
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error de conexión al guardar los datos.");
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = ctx.btnSubmit;
+            }
+        }
     </script>
 </body>
-</html>
 </html>
