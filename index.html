@@ -7,11 +7,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;750&display=swap');
         :root {
-            --bg-default: #121214; /* Gris ultra oscuro original */
+            --bg-default: #121214;
             --bg-verde: #2ec4b6;
             --bg-rojo: #e63946;
             --text-light: #ffffff;
-            --branding-orange: #ff8c00; /* Naranja corporativo */
+            --branding-orange: #ff8c00;
         }
         body {
             margin: 0; padding: 0;
@@ -41,7 +41,7 @@
         .pantalla-aviso { margin-top: 20px; padding: 20px; border-radius: 10px; font-size: 1.8rem; font-weight: bold; display: none; }
         .nombre-usuario { font-size: 2.2rem; margin-top: 10px; display: block; }
 
-        /* Estilos del Botón Flotante Administrativo (Agnóstico) */
+        /* Botón Flotante Administrativo */
         .btn-admin {
             position: absolute; top: 20px; right: 20px;
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
@@ -50,7 +50,7 @@
         }
         .btn-admin:hover { background: var(--branding-orange); border-color: var(--branding-orange); }
 
-        /* Estilos de la Ventana Modal (Panel de Control Superpuesto) */
+        /* Ventana Modal */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
@@ -73,9 +73,26 @@
         .btn-block:hover { background: #e07b00; }
         .btn-cerrar { background: transparent; border: none; color: #aaa; cursor: pointer; float: right; font-size: 1.2rem; }
         .btn-cerrar:hover { color: white; }
+
+        /* ESTILOS DEL TOAST NOTIFICACIÓN PREMIUM */
+        .toast-container {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-40px);
+            background: #2c2c2e; padding: 15px 25px; border-radius: 8px; font-weight: bold;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center;
+            gap: 10px; opacity: 0; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            border-left: 5px solid transparent; pointer-events: none;
+        }
+        .toast-container.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-success { border-left-color: var(--bg-verde); color: white; }
+        .toast-error { border-left-color: var(--bg-rojo); color: white; }
     </style>
 </head>
 <body>
+
+    <div id="toast" class="toast-container">
+        <span id="toastIcono"></span>
+        <span id="toastTexto">Mensaje del sistema</span>
+    </div>
 
     <button class="btn-admin" id="btnAdmin" onclick="abrirAdmin()">⚙️ Panel Control</button>
 
@@ -114,7 +131,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label id="lblFecha" for="regFecha">Fecha de Vigencia / Pago</label>
+                    <label id="lblFecha" for="regFecha">Fecha de Inicio de Plan</label>
                     <input type="date" id="regFecha" required>
                 </div>
                 <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar Cambios</button>
@@ -123,12 +140,8 @@
     </div>
 
     <script>
-        // 1. URL de la API en SiteGround (Ya soporta GET y POST)
         const URL_API = "https://frankegonzalez.com/api/control-acceso/api.php";
 
-        // ===================================================
-        // MACO CONFIGURACIÓN MULTI-TENANT (FUTUROS PROYECTOS)
-        // ===================================================
         const DIACCIONARIO_TENANTS = {
             "vidafit": {
                 titulo: "Control de Acceso Vida Fit",
@@ -154,11 +167,9 @@
             }
         };
 
-        // Definimos el cliente actual (En producción podrías leerlo dinámicamente de la URL)
         const clienteActual = "vidafit"; 
         const ctx = DIACCIONARIO_TENANTS[clienteActual] || DIACCIONARIO_TENANTS["default"];
 
-        // Inyectamos los textos dinámicos según el contexto del proyecto elegido
         document.getElementById("mainTitulo").textContent = ctx.titulo;
         document.getElementById("mainSubtitulo").textContent = ctx.subtitulo;
         document.getElementById("btnAdmin").textContent = ctx.btnAdmin;
@@ -174,7 +185,6 @@
         const aviso = document.getElementById('aviso');
         const modalAdmin = document.getElementById('modalAdmin');
 
-        // Foco automático inteligente
         document.addEventListener('click', (e) => {
             if (!modalAdmin.classList.contains('visible') && e.target.id !== 'btnAdmin') {
                 input.focus();
@@ -241,15 +251,29 @@
             aviso.style.display = "none";
         }
 
-        // ⚙️ CONTROL DE LA VENTANA DE GESTIÓN (MODAL)
+        // FUNCIÓN PREMIUM PARA MOSTRAR MENSAJES FLOTANTES (TOAST)
+        function mostrarToast(tipo, mensaje) {
+            const toast = document.getElementById('toast');
+            const icono = document.getElementById('toastIcono');
+            const texto = document.getElementById('toastTexto');
+
+            toast.className = `toast-container show ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
+            icono.textContent = tipo === 'success' ? '✅' : '❌';
+            texto.textContent = mensaje;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // ⚙️ GESTIÓN MODAL
         function abrirAdmin() {
             const clave = prompt("Por favor, digite la clave de seguridad administrativa:");
             if (clave === "AccesoGym26") {
                 modalAdmin.classList.add('visible');
-                // Setea por defecto la fecha de hoy en el input date
                 document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
             } else if (clave !== null) {
-                alert("Clave incorrecta. Acceso denegado.");
+                mostrarToast('error', 'Clave incorrecta. Acceso denegado.');
             }
         }
 
@@ -259,7 +283,7 @@
             input.focus();
         }
 
-        // 💾 PROCESAR GUARDADO O ACTUALIZACIÓN (POST)
+        // 💾 GUARDAR / RENOVACIÓN (POST)
         async function guardarRegistro(event) {
             event.preventDefault();
             
@@ -271,7 +295,7 @@
                 documento: document.getElementById('regDocumento').value.trim(),
                 nombre: document.getElementById('regNombre').value.trim(),
                 tipo_plan: document.getElementById('regCategoria').value,
-                fecha_pago: document.getElementById('regFecha').value, // Formato YYYY-MM-DD del input nativo
+                fecha_pago: document.getElementById('regFecha').value,
                 cliente: clienteActual
             };
 
@@ -285,16 +309,16 @@
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
-                    alert(data.message);
+                    mostrarToast('success', data.message); // Mensaje chévere animado
                     cerrarAdmin();
                 } else {
-                    alert("Error: " + data.message);
+                    mostrarToast('error', data.message);
                     btnSubmit.disabled = false;
                     btnSubmit.textContent = ctx.btnSubmit;
                 }
             } catch (error) {
                 console.error(error);
-                alert("Error de conexión al guardar los datos.");
+                mostrarToast('error', 'Error de conexión al guardar los datos.');
                 btnSubmit.disabled = false;
                 btnSubmit.textContent = ctx.btnSubmit;
             }
