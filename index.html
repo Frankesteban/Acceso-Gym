@@ -49,204 +49,70 @@
         <h1>Control de Acceso Vida Fit</h1>
         <p class="subtitulo">Por favor, digite su documento de identidad</p>
         
-        <form id="formularioAcceso" onsubmit="procesarAcceso(event)">
-            <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
-        </form>
+        <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
 
         <div id="aviso" class="pantalla-aviso"></div>
     </div>
 
-
     <script>
-    // 1. URL de tu nueva API en SiteGround
-    const URL_API = "https://frankegonzalez.com/api/control-acceso/api.php";
-
-    // Enfocar el input automáticamente al cargar la página
-    window.onload = () => {
-        document.getElementById("documentoInput").focus();
-    };
-
-    // Escuchar la tecla Enter en el campo de texto
-    document.getElementById("documentoInput").addEventListener("keypress", function(e) {
-        if (e.key === 'Enter') {
-            procesarAcceso();
-        }
-    });
-
-    // Cierra la pantalla de estado y vuelve al formulario inicial
-    function volverAlInicio() {
-        document.getElementById("pantallaEstado").classList.add("hidden");
-        document.getElementById("tarjeta").classList.remove("hidden");
-        const input = document.getElementById("documentoInput");
-        input.value = "";
-        input.disabled = false;
-        input.focus();
-    }
-
-    // Muestra la interfaz en VERDE (Acceso Autorizado)
-    function mostrarPantallaVerde(nombre, motivo) {
-        const pantalla = document.getElementById("pantallaEstado");
-        const titulo = document.getElementById("estadoTitulo");
-        const desc = document.getElementById("estadoDescripcion");
-        const mensaje = document.getElementById("estadoMensaje");
-
-        pantalla.className = "pantalla-estado visible autorizado";
-        titulo.textContent = "ACCESO AUTORIZADO";
-        desc.textContent = nombre;
-        mensaje.textContent = motivo;
-
-        document.getElementById("tarjeta").classList.add("hidden");
-        setTimeout(volverAlInicio, 4000); // Se quita solo a los 4 segundos
-    }
-
-    // Muestra la interfaz en ROJO (Acceso Denegado / Vencido)
-    function mostrarPantallaRoja(nombre, motivo) {
-        const pantalla = document.getElementById("pantallaEstado");
-        const titulo = document.getElementById("estadoTitulo");
-        const desc = document.getElementById("estadoDescripcion");
-        const mensaje = document.getElementById("estadoMensaje");
-
-        pantalla.className = "pantalla-estado visible denegado";
-        titulo.textContent = "ACCESO DENEGADO";
-        desc.textContent = nombre;
-        mensaje.textContent = motivo;
-
-        document.getElementById("tarjeta").classList.add("hidden");
-        setTimeout(volverAlInicio, 4000); // Se quita solo a los 4 segundos
-    }
-
-    // 2. FUNCIÓN PRINCIPAL: Conectada a tu servidor MySQL
-    async function procesarAcceso() {
-        const documentoInput = document.getElementById("documentoInput");
-        const documento = documentoInput.value.trim();
-
-        if (!documento) return;
-
-        // Bloquear el input temporalmente para evitar doble lectura
-        documentoInput.disabled = true;
-
-        try {
-            // Enviamos la cédula y el tag del cliente mediante GET
-            const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=vidafit`);
-            const data = await respuesta.json();
-
-            if (data.status === "success") {
-                if (data.encontrado) {
-                    // Si el socio existe, evaluamos lo que calculó PHP
-                    if (data.resultado === "Autorizado") {
-                        mostrarPantallaVerde(data.nombre, data.motivo);
-                    } else {
-                        mostrarPantallaRoja(data.nombre, data.motivo);
-                    }
-                } else {
-                    // Si el documento no existe en la base de datos
-                    mostrarPantallaRoja("Usuario No Registrado", data.motivo);
-                }
-            } else {
-                throw new Error(data.message || "Error interno del backend");
-            }
-
-        } catch (error) {
-            console.error("Error en la petición:", error);
-            mostrarPantallaRoja("Error Técnico", "No se pudo conectar con el servidor de control de acceso.");
-        }
-    }
-</script>
-    <!--<script>
-        // === CONFIGURACIÓN ===
-        // PEGA AQUÍ TU URL DE SHEET.BEST
-        const URL_API = "https://api.sheetbest.com/sheets/71ba18cb-b912-436d-ac37-ddf296ea3049"; 
+        // 1. URL de tu nueva API en SiteGround
+        const URL_API = "https://frankegonzalez.com/api/control-acceso/api.php";
 
         const body = document.body;
         const input = document.getElementById('documentoInput');
         const aviso = document.getElementById('aviso');
 
+        // Mantener el foco en el input siempre
         document.addEventListener('click', () => input.focus());
         window.addEventListener('load', () => input.focus());
 
-        async function procesarAcceso(event) {
-    event.preventDefault();
-    const documento = input.value.trim();
-    if (!documento) return;
+        // Escuchar la tecla Enter en el campo de texto de forma limpia
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                procesarAcceso();
+            }
+        });
 
-    // Interfaz en modo de espera
-    input.disabled = true;
-    aviso.style.display = "block";
-    aviso.style.background = "#4a4e69";
-    aviso.innerHTML = "Consultando...";
+        // FUNCIÓN PRINCIPAL: Conectada a tu servidor MySQL en SiteGround
+        async function procesarAcceso() {
+            const documento = input.value.trim();
+            if (!documento) return;
 
-    try {
-                // 1. Consultar la pestaña 'Miembros'
-                const response = await fetch(`${URL_API}/tabs/Miembros`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+            // Interfaz en modo de espera
+            input.disabled = true;
+            aviso.style.display = "block";
+            aviso.style.background = "#4a4e69";
+            aviso.innerHTML = "Consultando...";
+
+            try {
+                // Hacemos la petición real con rompe-caché dinámico (_=...)
+                const urlFinal = `${URL_API}?documento=${documento}&cliente=vidafit&_=${new Date().getTime()}`;
+                const respuesta = await fetch(urlFinal);
+                const data = await respuesta.json();
+
+                if (data.status === "success") {
+                    if (data.encontrado) {
+                        // El socio existe en MySQL: evaluamos lo calculado por PHP
+                        if (data.resultado === "Autorizado") {
+                            mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
+                        } else {
+                            mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
+                        }
+                    } else {
+                        // El documento no existe en MySQL
+                        mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
                     }
-                });
-                
-                const miembros = await response.json();
-                
-                // Buscar al miembro por documento
-                const socio = miembros.find(m => m.Documento && m.Documento.toString().trim() === documento);
-        
-                if (!socio) {
-                    mostrarResultado("rojo", "Usuario no registrado", "No Encontrado");
-                    registrarLog(documento, "No Encontrado", "rojo", "Usuario no registrado");
-                    return;
-                }
-
-                // --- TRATAMIENTO DE LA FECHA DE PAGO ---
-                const fechaTexto = socio["Fecha de ultimo pago"].toString().trim();
-                let fechaPago;
-
-                if (fechaTexto.includes("/")) {
-                    const partes = fechaTexto.split("/");
-                    // Año, Mes (0-11), Día
-                    fechaPago = new Date(partes[2], partes[1] - 1, partes[0]);
                 } else {
-                    fechaPago = new Date(fechaTexto);
-                }
-
-                // --- CÁLCULO DE VENCIMIENTO SEGÚN EL PLAN ---
-                const plan = socio["Tipo de Plan"];
-                let fechaVencimiento = new Date(fechaPago);
-
-                if (plan === "Semanal") {
-                    fechaVencimiento.setDate(fechaPago.getDate() + 7);
-                } else if (plan === "Quincenal") {
-                    fechaVencimiento.setDate(fechaPago.getDate() + 15);
-                } else if (plan === "Mensual") {
-                    fechaVencimiento.setMonth(fechaPago.getMonth() + 1);
-                } else if (plan === "Semestral") {
-                    fechaVencimiento.setMonth(fechaPago.getMonth() + 6);
-                } else if (plan === "Anual") {
-                    fechaVencimiento.setFullYear(fechaPago.getFullYear() + 1);
-                }
-
-                // Normalizar horas para comparar limpiamente solo los días
-                const hoy = new Date();
-                hoy.setHours(0,0,0,0);
-                fechaVencimiento.setHours(0,0,0,0);
-
-                const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
-                const fVenceStr = fechaVencimiento.toLocaleDateString('es-CO', opcionesFecha);
-
-                // --- VALIDACIÓN Y MUESTRA DE RESULTADO ---
-                if (fechaVencimiento >= hoy) {
-                    mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>Vence: ${fVenceStr}</small>`, socio["Nombre Completo"]);
-                    registrarLog(documento, socio["Nombre Completo"], "verde", `Autorizado - Vence: ${fVenceStr}`);
-                } else {
-                    mostrarResultado("rojo", `MENSUALIDAD VENCIDA (${fVenceStr})`, socio["Nombre Completo"]);
-                    registrarLog(documento, socio["Nombre Completo"], "rojo", `Vencido desde el ${fVenceStr}`);
+                    throw new Error(data.message || "Error interno del backend");
                 }
 
             } catch (error) {
-                console.error("Error detallado:", error);
-                mostrarResultado("rojo", "Error al conectar con la base de datos", "Error Técnico");
+                console.error("Error en la petición:", error);
+                mostrarResultado("rojo", "No se pudo conectar con el servidor de control de acceso.", "Error Técnico");
             }
         }
 
+        // Pinta la pantalla usando tus estilos originales estéticos
         function mostrarResultado(status, mensaje, nombre) {
             if (status === "verde") {
                 body.style.backgroundColor = "var(--bg-verde)";
@@ -256,27 +122,10 @@
                 aviso.innerHTML = `${mensaje}<span class='nombre-usuario'>${nombre}</span>`;
             }
             aviso.style.background = "rgba(0,0,0,0.2)";
-            setTimeout(resetearPantalla, 3500);
+            setTimeout(resetearPantalla, 4000); // Se restablece solo a los 4 segundos
         }
 
-        async function registrarLog(doc, nombre, status, mensaje) {
-            try {
-                await fetch(`${URL_API}/tabs/Logs`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        "Fecha y Hora": new Date().toLocaleString('es-CO'),
-                        "Documento": doc,
-                        "Nombre": nombre,
-                        "Resultado": status.toUpperCase(),
-                        "Motivo": mensaje
-                    })
-                });
-            } catch (e) { 
-                console.error("Error guardando log", e); 
-            }
-        }
-
+        // Limpia y restablece la recepción para el siguiente socio
         function resetearPantalla() {
             input.disabled = false;
             input.value = "";
@@ -284,6 +133,7 @@
             body.style.backgroundColor = "var(--bg-default)";
             aviso.style.display = "none";
         }
-    </script>-->
+    </script>
 </body>
+</html>
 </html>
