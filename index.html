@@ -56,7 +56,103 @@
         <div id="aviso" class="pantalla-aviso"></div>
     </div>
 
+
     <script>
+    // 1. URL de tu nueva API en SiteGround
+    const URL_API = "https://frankegonzalez.com/api/control-acceso/api.php";
+
+    // Enfocar el input automáticamente al cargar la página
+    window.onload = () => {
+        document.getElementById("documentoInput").focus();
+    };
+
+    // Escuchar la tecla Enter en el campo de texto
+    document.getElementById("documentoInput").addEventListener("keypress", function(e) {
+        if (e.key === 'Enter') {
+            procesarAcceso();
+        }
+    });
+
+    // Cierra la pantalla de estado y vuelve al formulario inicial
+    function volverAlInicio() {
+        document.getElementById("pantallaEstado").classList.add("hidden");
+        document.getElementById("tarjeta").classList.remove("hidden");
+        const input = document.getElementById("documentoInput");
+        input.value = "";
+        input.disabled = false;
+        input.focus();
+    }
+
+    // Muestra la interfaz en VERDE (Acceso Autorizado)
+    function mostrarPantallaVerde(nombre, motivo) {
+        const pantalla = document.getElementById("pantallaEstado");
+        const titulo = document.getElementById("estadoTitulo");
+        const desc = document.getElementById("estadoDescripcion");
+        const mensaje = document.getElementById("estadoMensaje");
+
+        pantalla.className = "pantalla-estado visible autorizado";
+        titulo.textContent = "ACCESO AUTORIZADO";
+        desc.textContent = nombre;
+        mensaje.textContent = motivo;
+
+        document.getElementById("tarjeta").classList.add("hidden");
+        setTimeout(volverAlInicio, 4000); // Se quita solo a los 4 segundos
+    }
+
+    // Muestra la interfaz en ROJO (Acceso Denegado / Vencido)
+    function mostrarPantallaRoja(nombre, motivo) {
+        const pantalla = document.getElementById("pantallaEstado");
+        const titulo = document.getElementById("estadoTitulo");
+        const desc = document.getElementById("estadoDescripcion");
+        const mensaje = document.getElementById("estadoMensaje");
+
+        pantalla.className = "pantalla-estado visible denegado";
+        titulo.textContent = "ACCESO DENEGADO";
+        desc.textContent = nombre;
+        mensaje.textContent = motivo;
+
+        document.getElementById("tarjeta").classList.add("hidden");
+        setTimeout(volverAlInicio, 4000); // Se quita solo a los 4 segundos
+    }
+
+    // 2. FUNCIÓN PRINCIPAL: Conectada a tu servidor MySQL
+    async function procesarAcceso() {
+        const documentoInput = document.getElementById("documentoInput");
+        const documento = documentoInput.value.trim();
+
+        if (!documento) return;
+
+        // Bloquear el input temporalmente para evitar doble lectura
+        documentoInput.disabled = true;
+
+        try {
+            // Enviamos la cédula y el tag del cliente mediante GET
+            const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=vidafit`);
+            const data = await respuesta.json();
+
+            if (data.status === "success") {
+                if (data.encontrado) {
+                    // Si el socio existe, evaluamos lo que calculó PHP
+                    if (data.resultado === "Autorizado") {
+                        mostrarPantallaVerde(data.nombre, data.motivo);
+                    } else {
+                        mostrarPantallaRoja(data.nombre, data.motivo);
+                    }
+                } else {
+                    // Si el documento no existe en la base de datos
+                    mostrarPantallaRoja("Usuario No Registrado", data.motivo);
+                }
+            } else {
+                throw new Error(data.message || "Error interno del backend");
+            }
+
+        } catch (error) {
+            console.error("Error en la petición:", error);
+            mostrarPantallaRoja("Error Técnico", "No se pudo conectar con el servidor de control de acceso.");
+        }
+    }
+</script>
+    <!--<script>
         // === CONFIGURACIÓN ===
         // PEGA AQUÍ TU URL DE SHEET.BEST
         const URL_API = "https://api.sheetbest.com/sheets/71ba18cb-b912-436d-ac37-ddf296ea3049"; 
@@ -188,6 +284,6 @@
             body.style.backgroundColor = "var(--bg-default)";
             aviso.style.display = "none";
         }
-    </script>
+    </script>-->
 </body>
 </html>
