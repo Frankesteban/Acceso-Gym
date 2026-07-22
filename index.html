@@ -3,54 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Validación y Control</title>
+    <title>Sistema de Validación y Control - Vida Fit</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;750&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700&display=swap');
         :root {
             --bg-default: #121214;
             --bg-verde: #2ec4b6;
             --bg-rojo: #e63946;
             --text-light: #ffffff;
             --branding-orange: #ff8c00;
+            --card-bg: rgba(28, 28, 30, 0.95);
         }
         body {
             margin: 0; padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Montserrat', 'Segoe UI', Tahoma, sans-serif;
             background-color: var(--bg-default); color: var(--text-light);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            height: 100vh; transition: background-color 0.4s ease; overflow: hidden;
+            min-height: 100vh; transition: background-color 0.4s ease; overflow-x: hidden;
             position: relative;
         }
+        
+        /* 1. VISTA PRINCIPAL (CENTRADA Y LIMPIA) */
         .contenedor {
-            text-align: center; width: 90%; max-width: 600px; padding: 40px;
-            border-radius: 15px; background: rgba(0, 0, 0, 0.65);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center; width: 90%; max-width: 550px; padding: 35px 25px;
+            border-radius: 15px; background: rgba(0, 0, 0, 0.75);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 1;
         }
-        h1 { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
-        .subtitulo { font-size: 1.1rem; color: #ccc; margin-bottom: 30px; }
+        h1 { font-family: 'Bebas Neue', cursive; font-size: 2.8rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
+        .subtitulo { font-size: 1rem; color: #aaa; margin-bottom: 25px; }
+        
         #documentoInput {
-            background: transparent; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px;
-            color: white; font-size: 2rem; padding: 10px; text-align: center; width: 80%;
-            outline: none; margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.2); border-radius: 10px;
+            color: white; font-size: 2.2rem; padding: 12px; text-align: center; width: 85%;
+            outline: none; margin-bottom: 10px; font-family: 'Bebas Neue', monospace; letter-spacing: 3px;
+            transition: all 0.3s ease;
         }
         #documentoInput:focus {
             border-color: var(--branding-orange);
-            box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+            background: rgba(0, 0, 0, 0.4);
         }
-        .pantalla-aviso { margin-top: 20px; padding: 20px; border-radius: 10px; font-size: 1.8rem; font-weight: bold; display: none; }
-        .nombre-usuario { font-size: 2.2rem; margin-top: 10px; display: block; }
+        
+        .pantalla-aviso { margin-top: 15px; padding: 15px; border-radius: 10px; font-size: 1.5rem; font-weight: bold; display: none; }
+        .nombre-usuario { font-size: 1.8rem; margin-top: 5px; display: block; color: #fff; }
 
-        /* Botón Flotante Administrativo */
-        .btn-admin {
-            position: absolute; top: 20px; right: 20px;
+        /* SECCIÓN DE ACCIONES CONTEXTUALES (PAGOS Y EDICIÓN) DENTRO DE LA TARJETA */
+        .seccion-accion {
+            margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: left;
+        }
+        .seccion-accion label { display: block; font-size: 0.85rem; color: #bbb; margin-bottom: 5px; }
+        .seccion-accion input, .seccion-accion select {
+            width: 100%; padding: 8px 12px; box-sizing: border-box; background: #2c2c2e;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 0.95rem; outline: none; margin-bottom: 12px;
+        }
+
+        /* BOTONES SUPERIORES (ADMIN Y REPORTES) */
+        .top-nav { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .btn-nav {
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer;
-            font-size: 0.9rem; font-weight: bold; transition: 0.3s; z-index: 10;
+            color: white; padding: 10px 15px; border-radius: 6px; cursor: pointer;
+            font-size: 0.85rem; font-weight: bold; transition: 0.3s;
         }
-        .btn-admin:hover { background: var(--branding-orange); border-color: var(--branding-orange); }
+        .btn-nav:hover { background: var(--branding-orange); border-color: var(--branding-orange); }
 
-        /* Ventana Modal */
+        /* VENTANAS MODALES (ADMINISTRACIÓN Y REPORTES) */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
@@ -59,198 +78,214 @@
         .modal.visible { opacity: 1; pointer-events: auto; }
         .modal-contenido {
             background: #1c1c1e; padding: 30px; border-radius: 12px;
-            width: 90%; max-width: 450px; border: 1px solid rgba(255,255,255,0.1);
+            width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto;
         }
-        .modal-contenido h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
+        .modal-contenido.ancho-especial { max-width: 850px; }
+        .modal-contenido h2 { font-family: 'Bebas Neue', cursive; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
+        
         .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; font-size: 0.9rem; color: #aaa; margin-bottom: 5px; }
+        .form-group label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 5px; }
         .form-group input, .form-group select {
             width: 100%; padding: 10px; box-sizing: border-box; background: #2c2c2e;
             border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 1rem; outline: none;
         }
         .form-group input:focus, .form-group select:focus { border-color: var(--branding-orange); }
+        
         .btn-block { width: 100%; padding: 12px; background: var(--branding-orange); border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-block:hover { background: #e07b00; }
-        .btn-cerrar { background: transparent; border: none; color: #aaa; cursor: pointer; float: right; font-size: 1.2rem; }
+        .btn-success { background: #2ec4b6; color: #121214; }
+        .btn-success:hover { background: #26a99d; }
+        .btn-cerrar { background: transparent; border: none; color: #aaa; cursor: pointer; float: right; font-size: 1.3rem; }
         .btn-cerrar:hover { color: white; }
 
-        /* ESTILOS DEL TOAST NOTIFICACIÓN PREMIUM */
+        /* TABLA DE REPORTES */
+        .tabla-contenedor { width: 100%; overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: var(--branding-orange); font-weight: bold; }
+
+        /* NOTIFICACIÓN TOAST */
         .toast-container {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-40px);
             background: #2c2c2e; padding: 15px 25px; border-radius: 8px; font-weight: bold;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center;
-            gap: 10px; opacity: 0; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            gap: 10px; opacity: 0; transition: transform 0.4s ease, opacity 0.3s ease;
             border-left: 5px solid transparent; pointer-events: none;
         }
         .toast-container.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .toast-success { border-left-color: var(--bg-verde); color: white; }
         .toast-error { border-left-color: var(--bg-rojo); color: white; }
+        .d-none { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- Componente para Renovación Multi-Mes -->
-<div id="seccion-renovacion" class="mt-3">
-  <label for="select-meses" class="form-label font-weight-bold">Cantidad de Meses:</label>
-  <select id="select-meses" class="form-control mb-2" onchange="calcularMontoRenovacion()">
-    <option value="1">1 Mes</option>
-    <option value="2">2 Meses</option>
-    <option value="3">3 Meses</option>
-    <option value="6">6 Meses</option>
-    <option value="12">1 Año</option>
-  </select>
 
-  <label for="select-metodo" class="form-label font-weight-bold">Método de Pago:</label>
-  <select id="select-metodo" class="form-control mb-2">
-    <option value="EFECTIVO">Efectivo</option>
-    <option value="NEQUI">Nequi</option>
-    <option value="DAVIPLATA">Daviplata</option>
-    <option value="TARJETA">Tarjeta</option>
-  </select>
-
-  <div class="h5 font-weight-bold text-success mb-3">
-    Total a cobrar: $<span id="lbl-monto-total">60000</span>
-  </div>
-
-  <button class="btn btn-success btn-block font-weight-bold" onclick="procesarRenovacion()">
-    💳 Confirmar Renovación
-  </button>
-</div>
-
-    <!-- Campos de Datos del Socio (Inhabilitados para Recepción / Habilitados para Admin) -->
-<div class="form-group mb-2">
-  <label>Nombre Completo:</label>
-  <input type="text" id="txt-nombre-socio" class="form-control" readonly>
-</div>
-<div class="form-group mb-2">
-  <label>Teléfono:</label>
-  <input type="text" id="txt-telefono-socio" class="form-control" readonly>
-</div>
-
-<!-- Botón visible solo si rol === 'ADMIN' -->
-<div id="btn-editar-container" class="d-none mt-2">
-  <button id="btn-editar-socio" class="btn btn-warning btn-sm" onclick="habilitarEdicion()">
-    ✏️ Editar Datos
-  </button>
-  <button id="btn-guardar-socio" class="btn btn-primary btn-sm d-none" onclick="guardarEdicionSocio()">
-    💾 Guardar Cambios
-  </button>
-</div>
-
-    <!-- Módulo de Reportes (Solo visible para ADMIN) -->
-<div id="modulo-reportes" class="card mt-4 d-none">
-  <div class="card-header bg-dark text-white font-weight-bold">
-    📊 Reporte de Caja y Accesos
-  </div>
-  <div class="card-body">
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <label>Desde:</label>
-        <input type="date" id="rep-fecha-inicio" class="form-control">
-      </div>
-      <div class="col-md-3">
-        <label>Hasta:</label>
-        <input type="date" id="rep-fecha-fin" class="form-control">
-      </div>
-      <div class="col-md-3">
-        <label>Tipo Ingreso:</label>
-        <select id="rep-tipo" class="form-control">
-          <option value="TODOS">Todos</option>
-          <option value="DIA">Días / Pasadías</option>
-          <option value="RENOVACION_MES">Renovaciones</option>
-        </select>
-      </div>
-      <div class="col-md-3 d-flex align-items-end">
-        <button class="btn btn-primary btn-block" onclick="consultarReportes()">
-          🔍 Filtrar
-        </button>
-      </div>
+    <!-- BOTONES DE NAVEGACIÓN SUPERIOR -->
+    <div class="top-nav">
+        <button class="btn-nav d-none" id="btnReportesNav" onclick="abrirReportes()">📊 Reportes y Cierre</button>
+        <button class="btn-nav" id="btnAdmin" onclick="abrirAdmin()">⚙️ Gestión Socios</button>
     </div>
 
-    <!-- Contenedor de Totales -->
-    <div class="row text-center mb-3" id="resumen-totales">
-      <!-- Se llena dinámicamente con JS (Total Efectivo, Nequi, etc.) -->
-    </div>
-
-    <!-- Tabla de Logs -->
-    <div class="table-responsive">
-      <table class="table table-striped table-hover" id="tabla-reportes">
-        <thead>
-          <tr>
-            <th>Fecha/Hora</th>
-            <th>Socio</th>
-            <th>Documento</th>
-            <th>Tipo</th>
-            <th>Monto</th>
-            <th>Método</th>
-            <th>Usuario</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-reportes">
-          <!-- Datos dinámicos -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-    
-    <div id="toast" class="toast-container">
-        <span id="toastIcono"></span>
-        <span id="toastTexto">Mensaje del sistema</span>
-    </div>
-
-    <button class="btn-admin" id="btnAdmin" onclick="abrirAdmin()">⚙️ Panel Control</button>
-
+    <!-- 1. MÓDULO PRINCIPAL DE CONSULTA (LO ÚNICO VISIBLE AL INICIO) -->
     <div class="contenedor" id="tarjeta">
-        <img src="https://acceso-gym.vercel.app/logo-vidafit.png" alt="Logo Cliente" style="max-width: 220px; margin-bottom: 20px; display: inline-block;">
-        <h1 id="mainTitulo">Cargando Sistema...</h1>
+        <img src="https://acceso-gym.vercel.app/logo-vidafit.png" alt="Logo Cliente" style="max-width: 200px; margin-bottom: 15px; display: inline-block;">
+        <h1 id="mainTitulo">Cargando...</h1>
         <p class="subtitulo" id="mainSubtitulo">Por favor espere...</p>
         
         <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
 
+        <!-- AVISO DE RESULTADO DE CONSULTA -->
         <div id="aviso" class="pantalla-aviso"></div>
+
+        <!-- TARJETA CONTEXTUAL (SE MUESTRA SOLO AL CONSULTAR SOCIO) -->
+        <div id="seccionSocioConsultado" class="d-none">
+            
+            <!-- OPCIÓN DE EDICIÓN DE DATOS (SOLO ADMIN) -->
+            <div id="containerEdicionAdmin" class="seccion-accion d-none">
+                <input type="hidden" id="txt-id-socio">
+                <input type="hidden" id="txt-documento-socio">
+                <div class="form-group mb-2">
+                    <label>Nombre Completo:</label>
+                    <input type="text" id="txt-nombre-socio" readonly>
+                </div>
+                <div class="form-group mb-2">
+                    <label>Teléfono:</label>
+                    <input type="text" id="txt-telefono-socio" readonly>
+                </div>
+                <button id="btn-editar-socio" class="btn-nav" style="width:100%" onclick="habilitarEdicion()">✏️ Editar Datos del Socio</button>
+                <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio()">💾 Guardar Cambios</button>
+            </div>
+
+            <!-- MÓDULO DE RENOVACIÓN / PAGO (VISIBLE CUANDO ESTÁ VENCIDO O SE REQUIERE COBRO) -->
+            <div id="seccion-renovacion" class="seccion-accion d-none">
+                <h4 style="margin:0 0 10px 0; color:var(--branding-orange);">💳 Registrar Pago / Renovación</h4>
+                
+                <label for="select-meses">Cantidad de Meses:</label>
+                <select id="select-meses" onchange="calcularMontoRenovacion()">
+                    <option value="1">1 Mes</option>
+                    <option value="2">2 Meses</option>
+                    <option value="3">3 Meses</option>
+                    <option value="6">6 Meses</option>
+                    <option value="12">1 Año</option>
+                </select>
+
+                <label for="select-metodo">Método de Pago:</label>
+                <select id="select-metodo">
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="NEQUI">Nequi</option>
+                    <option value="DAVIPLATA">Daviplata</option>
+                    <option value="TARJETA">Tarjeta</option>
+                </select>
+
+                <div style="font-size:1.1rem; font-weight:bold; color:var(--bg-verde); margin: 10px 0;">
+                    Total a cobrar: $<span id="lbl-monto-total">60.000</span>
+                </div>
+
+                <button class="btn-block btn-success" onclick="procesarRenovacion()">Confirmar Pago</button>
+            </div>
+
+        </div>
     </div>
 
-   <div id="modalAdmin" class="modal">
-    <div class="modal-contenido">
-        <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
-        <h2 id="modalTitulo">Gestor de Datos</h2> 
-        
-        <div id="seccionLogin" style="text-align: center; padding: 10px 0;">
-            <p style="color: #ccc; margin-bottom: 15px;">Ingrese la clave administrativa para continuar:</p>
-            <div class="form-group">
-                <input type="password" id="adminClave" placeholder="••••••••" style="text-align: center; font-size: 1.2rem;">
+    <!-- 2. MODAL DE GESTIÓN Y REGISTRO (PANEL DE CONTROL) -->
+    <div id="modalAdmin" class="modal">
+        <div class="modal-contenido">
+            <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
+            <h2 id="modalTitulo">Gestor de Datos</h2> 
+            
+            <div id="seccionLogin" style="text-align: center; padding: 10px 0;">
+                <p style="color: #ccc; margin-bottom: 15px;">Ingrese clave administrativa:</p>
+                <div class="form-group">
+                    <input type="password" id="adminClave" placeholder="••••••••" style="text-align: center; font-size: 1.2rem;">
+                </div>
+                <button type="button" class="btn-block" onclick="verificarClaveAdmin()">Ingresar al Panel</button>
             </div>
-            <button type="button" class="btn-block" onclick="verificarClaveAdmin()">Ingresar al Panel</button>
-        </div>
 
-        <form id="formRegistro" onsubmit="guardarRegistro(event)">
-            <div id="camposFormulario" style="display: none;">
-                <div class="form-group">
-                    <label id="lblDocumento" for="regDocumento">Identificador Único</label>
-                    <input type="text" id="regDocumento" required autocomplete="off">
+            <form id="formRegistro" onsubmit="guardarRegistro(event)">
+                <div id="camposFormulario" style="display: none;">
+                    <div class="form-group">
+                        <label id="lblDocumento" for="regDocumento">Documento</label>
+                        <input type="text" id="regDocumento" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label id="lblNombre" for="regNombre">Nombre Completo</label>
+                        <input type="text" id="regNombre" placeholder="Nombre del socio">
+                    </div>
+                    <div class="form-group">
+                        <label id="lblCategoria" for="regCategoria">Tipo de Plan</label>
+                        <select id="regCategoria">
+                            <option value="Mes" selected>Mensualidad</option>
+                            <option value="Semestral">Semestral</option>
+                            <option value="Anual">Anual</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblFecha" for="regFecha">Fecha de Inicio / Pago</label>
+                        <input type="date" id="regFecha" required>
+                    </div>
+                    <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar Socio</button>
                 </div>
-                <div class="form-group">
-                    <label id="lblNombre" for="regNombre">Nombre / Razón Social</label>
-                    <input type="text" id="regNombre" placeholder="Dejar vacío si ya existe para actualizar">
-                </div>
-                <div class="form-group">
-                    <label id="lblCategoria" for="regCategoria">Categoría / Tipo de Plan</label>
-                    <select id="regCategoria">
-                        <option value="Semanal">Semanal / Corto</option>
-                        <option value="Quincenal">Quincenal / Medio</option>
-                        <option value="Mes" selected>Mensual / Estándar</option>
-                        <option value="Semestral">Semestral / Avanzado</option>
-                        <option value="Anual">Anual / Premium</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label id="lblFecha" for="regFecha">Fecha de Inicio de Plan</label>
-                    <input type="date" id="regFecha" required>
-                </div>
-                <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar Cambios</button>
             </form>
         </div>
+    </div>
+
+    <!-- 3. MODAL DE REPORTES Y CIERRE DE CAJA (SOLO ADMIN) -->
+    <div id="modalReportes" class="modal">
+        <div class="modal-contenido ancho-especial">
+            <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
+            <h2>📊 Reporte de Caja y Accesos</h2>
+            
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                <div style="flex:1; min-width:130px;">
+                    <label style="font-size:0.8rem; color:#aaa;">Desde:</label>
+                    <input type="date" id="rep-fecha-inicio" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
+                </div>
+                <div style="flex:1; min-width:130px;">
+                    <label style="font-size:0.8rem; color:#aaa;">Hasta:</label>
+                    <input type="date" id="rep-fecha-fin" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
+                </div>
+                <div style="flex:1; min-width:130px;">
+                    <label style="font-size:0.8rem; color:#aaa;">Tipo:</label>
+                    <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
+                        <option value="TODOS">Todos</option>
+                        <option value="DIA">Días / Pasadías</option>
+                        <option value="RENOVACION_MES">Renovaciones</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width:130px; display:flex; align-items:flex-end;">
+                    <button class="btn-block" style="margin:0; padding:9px;" onclick="consultarReportes()">🔍 Filtrar</button>
+                </div>
+            </div>
+
+            <div id="resumen-totales" style="margin:15px 0; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; display:flex; justify-content:space-around; font-weight:bold;">
+                <!-- Totales calculados por JS -->
+            </div>
+
+            <div class="tabla-contenedor">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Socio</th>
+                            <th>Documento</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-reportes">
+                        <!-- Filas dinámicas -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN TOAST -->
+    <div id="toast" class="toast-container">
+        <span id="toastIcono"></span>
+        <span id="toastTexto">Mensaje del sistema</span>
     </div>
 
     <script>
@@ -298,9 +333,11 @@
         const input = document.getElementById('documentoInput');
         const aviso = document.getElementById('aviso');
         const modalAdmin = document.getElementById('modalAdmin');
+        const modalReportes = document.getElementById('modalReportes');
 
+        // Mantenimiento de Autofocus en el input principal
         document.addEventListener('click', (e) => {
-            if (!modalAdmin.classList.contains('visible') && e.target.id !== 'btnAdmin') {
+            if (!modalAdmin.classList.contains('visible') && !modalReportes.classList.contains('visible') && e.target.id !== 'btnAdmin') {
                 input.focus();
             }
         });
@@ -311,40 +348,8 @@
                 procesarAcceso();
             }
         });
-        document.getElementById('regDocumento').addEventListener('blur', async function() {
-            const documento = this.value.trim();
-            if (!documento) return;
 
-            const lblNombre = document.getElementById('lblNombre');
-            const inputNombre = document.getElementById('regNombre');
-            const btnSubmit = document.getElementById('btnSubmitAdmin');
-
-        lblNombre.textContent = "Buscando identificación...";
-
-            try {
-            // Reutilizamos tu API de consulta
-            const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
-            const data = await respuesta.json();
-
-            if (data.status === "success" && data.encontrado) {
-            // El usuario YA existe: Autocompletamos y preparamos para actualizar
-            inputNombre.value = data.nombre;
-            lblNombre.textContent = "Nombre Completo (Registrado - Puedes modificarlo)";
-            btnSubmit.textContent = "Actualizar Datos del Socio";
-            mostrarToast('success', 'Socio encontrado. Modo edición activo.');
-            } else {
-            // El usuario NO existe: Dejamos limpio para registro nuevo
-            inputNombre.value = "";
-            lblNombre.textContent = "Nombre Completo del Socio (Nuevo Registro)";
-            btnSubmit.textContent = ctx.btnSubmit; // Vuelve al texto por defecto del diccionario
-            }
-                } catch (error) {
-            console.error(error);
-            lblNombre.textContent = "Nombre Completo del Socio";
-                    }
-        });
-
-        // 🔍 CONSULTAR REGISTRO (GET)
+        // 🔍 CONSULTAR SOCIO / ACCESO
         async function procesarAcceso() {
             const documento = input.value.trim();
             if (!documento) return;
@@ -353,6 +358,7 @@
             aviso.style.display = "block";
             aviso.style.background = "#4a4e69";
             aviso.innerHTML = "Consultando...";
+            ocultarSeccionSocio();
 
             try {
                 const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
@@ -360,11 +366,19 @@
 
                 if (data.status === "success") {
                     if (data.encontrado) {
+                        // Cargar variables en campos ocultos para posible edición o cobro
+                        document.getElementById('txt-documento-socio').value = data.socio?.documento || documento;
+                        document.getElementById('txt-nombre-socio').value = data.socio?.nombre || data.nombre;
+                        document.getElementById('txt-id-socio').value = data.socio?.id || '';
+
                         if (data.resultado === "Autorizado") {
                             mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
                         } else {
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
+                            mostrarSeccionRenovacion(); // Despliega la opción de cobrar
                         }
+                        
+                        mostrarContenedorEdicionAdmin();
                     } else {
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
                     }
@@ -381,12 +395,12 @@
             if (status === "verde") {
                 body.style.backgroundColor = "var(--bg-verde)";
                 aviso.innerHTML = `¡BIENVENIDO!<span class='nombre-usuario'>${nombre}</span><br><small>${mensaje}</small>`;
+                setTimeout(resetearPantalla, 3500);
             } else {
                 body.style.backgroundColor = "var(--bg-rojo)";
                 aviso.innerHTML = `${mensaje}<span class='nombre-usuario'>${nombre}</span>`;
             }
             aviso.style.background = "rgba(0,0,0,0.2)";
-            setTimeout(resetearPantalla, 3500);
         }
 
         function resetearPantalla() {
@@ -395,99 +409,221 @@
             input.focus();
             body.style.backgroundColor = "var(--bg-default)";
             aviso.style.display = "none";
+            ocultarSeccionSocio();
         }
 
-        // FUNCIÓN  MENSAJES FLOTANTES (TOAST)
-        function mostrarToast(tipo, mensaje) {
-            const toast = document.getElementById('toast');
-            const icono = document.getElementById('toastIcono');
-            const texto = document.getElementById('toastTexto');
-
-            toast.className = `toast-container show ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
-            icono.textContent = tipo === 'success' ? '✅' : '❌';
-            texto.textContent = mensaje;
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3500);
+        function mostrarSeccionRenovacion() {
+            document.getElementById('seccionSocioConsultado').classList.remove('d-none');
+            document.getElementById('seccion-renovacion').classList.remove('d-none');
         }
 
-        // ⚙️ GESTIÓN MODAL
-            function abrirAdmin() {
-        // Mostramos la ventana modal
-        modalAdmin.classList.add('visible');
-        document.getElementById('seccionLogin').style.display = 'block';
-        document.getElementById('camposFormulario').style.display = 'none';
-        setTimeout(() => document.getElementById('adminClave').focus(), 100);
+        function mostrarContenedorEdicionAdmin() {
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
+            if (usuarioSesion.rol === 'ADMIN') {
+                document.getElementById('seccionSocioConsultado').classList.remove('d-none');
+                document.getElementById('containerEdicionAdmin').classList.remove('d-none');
+            }
+        }
+
+        function ocultarSeccionSocio() {
+            document.getElementById('seccionSocioConsultado').classList.add('d-none');
+            document.getElementById('seccion-renovacion').classList.add('d-none');
+            document.getElementById('containerEdicionAdmin').classList.add('d-none');
+        }
+
+        // 💵 CÁLCULO Y PROCESAMIENTO DE RENOVACIÓN MULTI-MES
+        function calcularMontoRenovacion() {
+            const PRECIO_MES = 60000;
+            const meses = parseInt(document.getElementById('select-meses').value) || 1;
+            const total = PRECIO_MES * meses;
+            document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
+        }
+
+        async function procesarRenovacion() {
+            const documento = document.getElementById('txt-documento-socio').value || input.value.trim();
+            const nombre = document.getElementById('txt-nombre-socio').value;
+            const meses = parseInt(document.getElementById('select-meses').value) || 1;
+            const metodoPago = document.getElementById('select-metodo').value;
+            const PRECIO_MES = 60000;
+            const montoTotal = PRECIO_MES * meses;
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
+
+            try {
+                const res = await fetch(`${URL_API}?action=registrar_pago`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        documento: documento,
+                        nombre: nombre,
+                        tipo_ingreso: 'RENOVACION_MES',
+                        meses: meses,
+                        monto: montoTotal,
+                        metodo_pago: metodoPago,
+                        usuario_registro: usuarioSesion.username
+                    })
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    mostrarToast('success', `Renovación por ${meses} mes(es) exitosa.`);
+                    resetearPantalla();
+                } else {
+                    mostrarToast('error', data.message || 'Error al procesar renovación.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarToast('error', 'Error de conexión con el servidor.');
+            }
+        }
+
+        // ✏️ EDICIÓN DE SOCIOS (ADMIN)
+        function habilitarEdicion() {
+            document.getElementById('txt-nombre-socio').removeAttribute('readonly');
+            document.getElementById('txt-telefono-socio').removeAttribute('readonly');
+            document.getElementById('btn-editar-socio').classList.add('d-none');
+            document.getElementById('btn-guardar-socio').classList.remove('d-none');
+        }
+
+        async function guardarEdicionSocio() {
+            const idSocio = document.getElementById('txt-id-socio').value;
+            const nombre = document.getElementById('txt-nombre-socio').value;
+            const documento = document.getElementById('txt-documento-socio').value;
+            const telefono = document.getElementById('txt-telefono-socio').value;
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
+
+            try {
+                const res = await fetch(`${URL_API}?action=editar_socio`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: idSocio,
+                        nombre: nombre,
+                        documento: documento,
+                        telefono: telefono,
+                        rol_usuario: usuarioSesion.rol
+                    })
+                });
+
+                const data = await res.json();
+                if (data.status === 'success') {
+                    mostrarToast('success', 'Datos actualizados correctamente');
+                    document.getElementById('txt-nombre-socio').setAttribute('readonly', true);
+                    document.getElementById('txt-telefono-socio').setAttribute('readonly', true);
+                    document.getElementById('btn-editar-socio').classList.remove('d-none');
+                    document.getElementById('btn-guardar-socio').classList.add('d-none');
+                } else {
+                    mostrarToast('error', data.message);
+                }
+            } catch (error) {
+                mostrarToast('error', 'No se pudo guardar la información.');
+            }
+        }
+
+        // 📊 MODAL Y CONSULTA DE REPORTES
+        function abrirReportes() {
+            modalReportes.classList.add('visible');
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('rep-fecha-inicio').value = hoy;
+            document.getElementById('rep-fecha-fin').value = hoy;
+            consultarReportes();
+        }
+
+        function cerrarReportes() {
+            modalReportes.classList.remove('visible');
+            input.focus();
+        }
+
+        async function consultarReportes() {
+            const fInicio = document.getElementById('rep-fecha-inicio').value;
+            const fFin = document.getElementById('rep-fecha-fin').value;
+            const tipo = document.getElementById('rep-tipo').value;
+
+            try {
+                const res = await fetch(`${URL_API}?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}`);
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    const t = data.totales;
+                    document.getElementById('resumen-totales').innerHTML = `
+                        <div>Total: <span style="color:var(--bg-verde)">$${t.total_recaudado.toLocaleString('es-CO')}</span></div>
+                        <div>Efectivo: <span>$${t.efectivo.toLocaleString('es-CO')}</span></div>
+                        <div>Digital: <span>$${t.nequi_daviplata.toLocaleString('es-CO')}</span></div>
+                    `;
+
+                    const tbody = document.getElementById('tbody-reportes');
+                    tbody.innerHTML = '';
+
+                    data.logs.forEach(log => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${log.fecha_hora}</td>
+                                <td>${log.nombre}</td>
+                                <td>${log.documento}</td>
+                                <td><strong style="color:${log.tipo_ingreso === 'DIA' ? 'var(--branding-orange)' : 'var(--bg-verde)'}">${log.tipo_ingreso}</strong></td>
+                                <td>$${parseFloat(log.monto).toLocaleString('es-CO')}</td>
+                                <td>${log.metodo_pago}</td>
+                                <td>${log.usuario_registro}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error('Error al cargar reportes:', e);
+                mostrarToast('error', 'Error al cargar los datos del reporte');
+            }
+        }
+
+        // ⚙️ GESTIÓN DE MODAL Y CREDENCIALES ADMIN
+        function abrirAdmin() {
+            modalAdmin.classList.add('visible');
+            document.getElementById('seccionLogin').style.display = 'block';
+            document.getElementById('camposFormulario').style.display = 'none';
+            setTimeout(() => document.getElementById('adminClave').focus(), 100);
         }
 
         function cerrarAdmin() {
-        modalAdmin.classList.remove('visible');
-        document.getElementById('formRegistro').reset();
-    
-        // Dejar los textos por defecto del diccionario al cerrar
-        document.getElementById('lblNombre').textContent = ctx.lblNombre;
-        document.getElementById('btnSubmitAdmin').textContent = ctx.btnSubmit;
-    
-        input.focus();
+            modalAdmin.classList.remove('visible');
+            document.getElementById('formRegistro').reset();
+            input.focus();
         }
-        
+
         async function verificarClaveAdmin() {
-        const claveInput = document.getElementById('adminClave');
-        const btnLogin = document.querySelector('#seccionLogin .btn-block');
-    
-        if (!claveInput.value.trim()) return;
+            const claveInput = document.getElementById('adminClave');
+            if (!claveInput.value.trim()) return;
 
-            // Bloqueamos el botón temporalmente
-        btnLogin.disabled = true;
-        btnLogin.textContent = "Verificando...";
+            try {
+                const respuesta = await fetch(URL_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accion: 'validar_credencial',
+                        clave: claveInput.value.trim(),
+                        cliente: clienteActual
+                    })
+                });
+                
+                const data = await respuesta.json();
 
-        try {
-        // Enviamos la clave al backend para validación segura
-        const respuesta = await fetch(URL_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                accion: 'validar_credencial',
-                clave: claveInput.value.trim(),
-                cliente: clienteActual
-            })
-        });
-        
-        const data = await respuesta.json();
-
-        if (data.status === "success" && data.autorizado === true) {
-            // Clave correcta: Revelamos el formulario modular
-            document.getElementById('seccionLogin').style.display = 'none';
-            document.getElementById('camposFormulario').style.display = 'block';
-            
-            document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
-            document.getElementById('regDocumento').focus();
-            
-            claveInput.value = ""; 
-        } else {
-            mostrarToast('error', data.message || 'Clave incorrecta. Acceso denegado.');
-            claveInput.value = "";
-            claveInput.focus();
-            }
-        } catch (error) {
-        console.error(error);
-        mostrarToast('error', 'Error técnico al validar credenciales.');
-        } finally {
-        btnLogin.disabled = false;
-        btnLogin.textContent = "Ingresar al Panel";
+                if (data.status === "success" && data.autorizado === true) {
+                    // Guardar sesión administrativa localmente
+                    localStorage.setItem('usuario_vidafit', JSON.stringify({ username: 'admin', rol: 'ADMIN' }));
+                    
+                    document.getElementById('seccionLogin').style.display = 'none';
+                    document.getElementById('camposFormulario').style.display = 'block';
+                    document.getElementById('btnReportesNav').classList.remove('d-none');
+                    document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+                    claveInput.value = ""; 
+                } else {
+                    mostrarToast('error', data.message || 'Clave incorrecta.');
+                    claveInput.value = "";
+                }
+            } catch (error) {
+                mostrarToast('error', 'Error técnico al validar credenciales.');
             }
         }
-        
 
-        // 💾 GUARDAR / RENOVACIÓN (POST)
         async function guardarRegistro(event) {
             event.preventDefault();
-            
-            const btnSubmit = document.getElementById('btnSubmitAdmin');
-            btnSubmit.disabled = true;
-            btnSubmit.textContent = "Procesando...";
-
             const payload = {
                 documento: document.getElementById('regDocumento').value.trim(),
                 nombre: document.getElementById('regNombre').value.trim(),
@@ -502,175 +638,35 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
-                    mostrarToast('success', data.message); // Mensaje chévere animado
+                    mostrarToast('success', data.message);
                     cerrarAdmin();
                 } else {
                     mostrarToast('error', data.message);
-                    btnSubmit.disabled = false;
-                    btnSubmit.textContent = ctx.btnSubmit;
                 }
             } catch (error) {
-                console.error(error);
-                mostrarToast('error', 'Error de conexión al guardar los datos.');
-                btnSubmit.disabled = false;
-                btnSubmit.textContent = ctx.btnSubmit;
+                mostrarToast('error', 'Error de conexión.');
             }
         }
-        
-        //22/07/2026 Calcular el precio total dinámicamente según los meses seleccionados
-function calcularMontoRenovacion() {
-  const PRECIO_MES = 60000; // Ajustar según la tarifa base del gimnasio
-  const meses = parseInt(document.getElementById('select-meses').value) || 1;
-  const total = PRECIO_MES * meses;
-  
-  document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
-}
 
-// Enviar la renovación a la API
-async function procesarRenovacion() {
-  const documento = document.getElementById('txt-documento-socio').value;
-  const nombre = document.getElementById('txt-nombre-socio').value;
-  const meses = parseInt(document.getElementById('select-meses').value) || 1;
-  const metodoPago = document.getElementById('select-metodo').value;
-  const PRECIO_MES = 60000;
-  const montoTotal = PRECIO_MES * meses;
-  
-  // Obtener usuario activo desde la sesión
-  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
+        function mostrarToast(tipo, mensaje) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastIcono').textContent = tipo === 'success' ? '✅' : '❌';
+            document.getElementById('toastTexto').textContent = mensaje;
 
-  try {
-    const res = await fetch('https://frankegonzalez.com/api/control-acceso/api.php?action=registrar_pago', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        documento: documento,
-        nombre: nombre,
-        tipo_ingreso: 'RENOVACION_MES',
-        meses: meses,
-        monto: montoTotal,
-        metodo_pago: metodoPago,
-        usuario_registro: usuarioSesion.username
-      })
-    });
+            toast.className = `toast-container show ${tipo === 'success' ? 'toast-success' : 'toast-error'}`;
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
 
-    const data = await res.json();
-    if (data.status === 'success') {
-      alert(`✅ Renovación de ${meses} mes(es) registrada con éxito.`);
-      // Volver a consultar para refrescar el estado del socio
-      consultarSocio(documento);
-    } else {
-      alert('⚠️ Error al procesar pago: ' + data.message);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('❌ Error de conexión con el servidor.');
-  }
-}
-    // Habilitar edición de campos de texto
-function habilitarEdicion() {
-  document.getElementById('txt-nombre-socio').removeAttribute('readonly');
-  document.getElementById('txt-telefono-socio').removeAttribute('readonly');
-  
-  document.getElementById('btn-editar-socio').classList.add('d-none');
-  document.getElementById('btn-guardar-socio').classList.remove('d-none');
-}
-
-// Guardar cambios en el backend
-async function guardarEdicionSocio() {
-  const idSocio = document.getElementById('txt-id-socio').value;
-  const nombre = document.getElementById('txt-nombre-socio').value;
-  const documento = document.getElementById('txt-documento-socio').value;
-  const telefono = document.getElementById('txt-telefono-socio').value;
-  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
-
-  try {
-    const res = await fetch('https://frankegonzalez.com/api/control-acceso/api.php?action=editar_socio', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: idSocio,
-        nombre: nombre,
-        documento: documento,
-        telefono: telefono,
-        rol_usuario: usuarioSesion.rol
-      })
-    });
-
-    const data = await res.json();
-    if (data.status === 'success') {
-      alert('💾 Datos actualizados correctamente');
-      document.getElementById('txt-nombre-socio').setAttribute('readonly', true);
-      document.getElementById('txt-telefono-socio').setAttribute('readonly', true);
-      document.getElementById('btn-editar-socio').classList.remove('d-none');
-      document.getElementById('btn-guardar-socio').classList.add('d-none');
-    } else {
-      alert('⚠️ ' + data.message);
-    }
-  } catch (error) {
-    alert('❌ No se pudo guardar la información.');
-  }
-}
-
-        async function consultarReportes() {
-  const fInicio = document.getElementById('rep-fecha-inicio').value;
-  const fFin = document.getElementById('rep-fecha-fin').value;
-  const tipo = document.getElementById('rep-tipo').value;
-
-  try {
-    const res = await fetch(`https://frankegonzalez.com/api/control-acceso/api.php?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}`);
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      // 1. Renderizar Resumen Monetario
-      const t = data.totales;
-      document.getElementById('resumen-totales').innerHTML = `
-        <div class="col-md-4"><strong>Total Recaudado:</strong> $${t.total_recaudado.toLocaleString('es-CO')}</div>
-        <div class="col-md-4"><strong>Efectivo:</strong> $${t.efectivo.toLocaleString('es-CO')}</div>
-        <div class="col-md-4"><strong>Digital (Nequi/Daviplata):</strong> $${t.nequi_daviplata.toLocaleString('es-CO')}</div>
-      `;
-
-      // 2. Renderizar Filas de la Tabla
-      const tbody = document.getElementById('tbody-reportes');
-      tbody.innerHTML = '';
-
-      data.logs.forEach(log => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${log.fecha_hora}</td>
-            <td>${log.nombre}</td>
-            <td>${log.documento}</td>
-            <td><span class="badge ${log.tipo_ingreso === 'DIA' ? 'badge-warning' : 'badge-success'}">${log.tipo_ingreso}</span></td>
-            <td>$${parseFloat(log.monto).toLocaleString('es-CO')}</td>
-            <td>${log.metodo_pago}</td>
-            <td>${log.usuario_registro}</td>
-          </tr>
-        `;
-      });
-    }
-  } catch (e) {
-    console.error('Error al cargar reportes:', e);
-  }
-}
-
+        // CONTROL DE SESIÓN AL CARGAR
         document.addEventListener('DOMContentLoaded', () => {
-  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit'));
-
-  // Si no hay sesión, se asume recepcion por defecto o se redirige a login
-  const rol = usuarioSesion ? usuarioSesion.rol : 'RECEPCION';
-
-  if (rol === 'ADMIN') {
-    document.getElementById('modulo-reportes')?.classList.remove('d-none');
-    document.getElementById('btn-editar-container')?.classList.remove('d-none');
-  } else {
-    document.getElementById('modulo-reportes')?.classList.add('d-none');
-    document.getElementById('btn-editar-container')?.classList.add('d-none');
-  }
-});
-        
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit'));
+            if (usuarioSesion && usuarioSesion.rol === 'ADMIN') {
+                document.getElementById('btnReportesNav').classList.remove('d-none');
+            }
+        });
     </script>
 </body>
 </html>
