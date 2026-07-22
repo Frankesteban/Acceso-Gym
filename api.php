@@ -2,13 +2,15 @@
 // api.php
 header("Content-Type: application/json; charset=UTF-8");
 
-// Evitar que errores/warnings de PHP rompan la estructura del JSON
+// Evitar que errores o avisos de PHP rompan la estructura del JSON
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 require_once 'conexion.php';
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+// Se captura 'action' desde la URL (?action=...) o desde el cuerpo JSON
+$jsonInput = json_decode(file_get_contents("php://input"), true) ?? [];
+$action = $_GET['action'] ?? $_POST['action'] ?? ($jsonInput['action'] ?? '');
 
 try {
     switch ($action) {
@@ -17,12 +19,11 @@ try {
         // 1. INICIO DE SESIÓN Y VERIFICACIÓN DE ROL
         // ========================================================
         case 'login':
-            $data = json_decode(file_get_contents("php://input"), true) ?? [];
-            $username = trim($data['username'] ?? '');
-            $password = trim($data['password'] ?? '');
+            $username = trim($jsonInput['username'] ?? $_POST['username'] ?? '');
+            $password = trim($jsonInput['password'] ?? $_POST['password'] ?? '');
 
             if ($username === '' || $password === '') {
-                echo json_encode(["status" => "error", "message" => "Usuario y contraseña son requeridos"]);
+                echo json_encode(["status" => "error", "message" => "Faltan datos obligatorios."]);
                 break;
             }
 
@@ -49,7 +50,7 @@ try {
         // 2. CONSULTA DE SOCIO / AUTO-LOG DE INGRESO
         // ========================================================
         case 'consultar_socio':
-            $documento = trim($_GET['documento'] ?? $_POST['documento'] ?? '');
+            $documento = trim($_GET['documento'] ?? $_POST['documento'] ?? $jsonInput['documento'] ?? '');
 
             if ($documento === '') {
                 echo json_encode(["status" => "error", "message" => "El número de documento es obligatorio"]);
@@ -89,18 +90,17 @@ try {
         // 3. REGISTRAR PAGO (DÍA O RENOVACIÓN MULTI-MES)
         // ========================================================
         case 'registrar_pago':
-            $data = json_decode(file_get_contents("php://input"), true) ?? [];
+            $documento     = trim($jsonInput['documento'] ?? $_POST['documento'] ?? '');
+            $nombre        = trim($jsonInput['nombre'] ?? $_POST['nombre'] ?? 'Socio');
+            $tipoIngreso   = $jsonInput['tipo_ingreso'] ?? $_POST['tipo_ingreso'] ?? 'DIA';
+            $meses         = max(1, intval($jsonInput['meses'] ?? $_POST['meses'] ?? 1));
+            $monto         = floatval($jsonInput['monto'] ?? $_POST['monto'] ?? 0);
+            $metodoPago    = $jsonInput['metodo_pago'] ?? $_POST['metodo_pago'] ?? 'EFECTIVO';
+            $usuarioActual = trim($jsonInput['usuario_registro'] ?? $_POST['usuario_registro'] ?? 'recepcion');
+            $clienteTag    = trim($jsonInput['cliente'] ?? 'vidafit');
 
-            $documento     = trim($data['documento'] ?? '');
-            $nombre        = trim($data['nombre'] ?? '');
-            $tipoIngreso   = $data['tipo_ingreso'] ?? '';
-            $meses         = max(1, intval($data['meses'] ?? 1));
-            $monto         = floatval($data['monto'] ?? 0);
-            $metodoPago    = $data['metodo_pago'] ?? 'EFECTIVO';
-            $usuarioActual = trim($data['usuario_registro'] ?? 'recepcion');
-
-            if ($documento === '' || $tipoIngreso === '') {
-                echo json_encode(["status" => "error", "message" => "Faltan parámetros obligatorios para registrar el pago"]);
+            if ($documento === '') {
+                echo json_encode(["status" => "error", "message" => "El campo documento es obligatorio para el registro"]);
                 break;
             }
 
@@ -120,7 +120,6 @@ try {
                 $today = new DateTime('today');
                 $currentFechaPago = new DateTime($socio['fecha_pago']);
 
-                // Si ya venció, inicia el conteo desde hoy; si no, extiende desde la fecha de vencimiento actual
                 $baseDate = ($currentFechaPago > $today) ? $currentFechaPago : $today;
                 $baseDate->modify("+{$meses} month");
                 $nuevaFechaPago = $baseDate->format('Y-m-d');
@@ -129,9 +128,8 @@ try {
                 $update->execute([$nuevaFechaPago, $documento]);
             }
 
-            // Registrar en la tabla de acceso / auditoría
-            $log = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, meses_pagados, monto, metodo_pago, usuario_registro, fecha_hora) VALUES ('vidafit', ?, ?, ?, ?, ?, ?, ?, NOW())");
-            $log->execute([$documento, $nombre, $tipoIngreso, $meses, $monto, $metodoPago, $usuarioActual]);
+            $log = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, meses_pagados, monto, metodo_pago, usuario_registro, fecha_hora) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+            $log->execute([$clienteTag, $documento, $nombre, $tipoIngreso, $meses, $monto, $metodoPago, $usuarioActual]);
 
             $pdo->commit();
 
@@ -139,20 +137,18 @@ try {
             break;
 
         // ========================================================
-        // 4. EDICIÓN DE SOCIO (MANTENIENDO TU ESTRUCTURA ORIGINAL)
+        // 4. EDICIÓN DE SOCIO
         // ========================================================
         case 'editar_socio':
-            $data = json_decode(file_get_contents("php://input"), true) ?? [];
-
-            if (($data['rol_usuario'] ?? '') !== 'ADMIN') {
+            if (($jsonInput['rol_usuario'] ?? $_POST['rol_usuario'] ?? '') !== 'ADMIN') {
                 echo json_encode(["status" => "error", "message" => "Acceso denegado. Se requieren permisos de Administrador."]);
                 break;
             }
 
-            $id        = intval($data['id'] ?? 0);
-            $nombre    = trim($data['nombre'] ?? '');
-            $documento = trim($data['documento'] ?? '');
-            $telefono  = trim($data['telefono'] ?? '');
+            $id        = intval($jsonInput['id'] ?? $_POST['id'] ?? 0);
+            $nombre    = trim($jsonInput['nombre'] ?? $_POST['nombre'] ?? '');
+            $documento = trim($jsonInput['documento'] ?? $_POST['documento'] ?? '');
+            $telefono  = trim($jsonInput['telefono'] ?? $_POST['telefono'] ?? '');
 
             $stmt = $pdo->prepare("UPDATE miembros SET nombre = ?, documento = ?, telefono = ? WHERE id = ?");
             $stmt->execute([$nombre, $documento, $telefono, $id]);
@@ -164,10 +160,10 @@ try {
         // 5. REPORTES Y CIERRE DE CAJA
         // ========================================================
         case 'obtener_reportes':
-            $fechaInicio = $_GET['fecha_inicio'] ?? date('Y-m-d');
-            $fechaFin    = $_GET['fecha_fin'] ?? date('Y-m-d');
-            $tipo        = $_GET['tipo'] ?? 'TODOS';
-            $metodo      = $_GET['metodo'] ?? 'TODOS';
+            $fechaInicio = $_GET['fecha_inicio'] ?? $jsonInput['fecha_inicio'] ?? date('Y-m-d');
+            $fechaFin    = $_GET['fecha_fin'] ?? $jsonInput['fecha_fin'] ?? date('Y-m-d');
+            $tipo        = $_GET['tipo'] ?? $jsonInput['tipo'] ?? 'TODOS';
+            $metodo      = $_GET['metodo'] ?? $jsonInput['metodo'] ?? 'TODOS';
 
             $query = "SELECT * FROM logs_acceso WHERE DATE(fecha_hora) BETWEEN ? AND ?";
             $params = [$fechaInicio, $fechaFin];
@@ -217,7 +213,7 @@ try {
             break;
 
         default:
-            echo json_encode(["status" => "error", "message" => "Acción no válida"]);
+            echo json_encode(["status" => "error", "message" => "Acción no válida o no especificada."]);
             break;
     }
 } catch (Exception $e) {
