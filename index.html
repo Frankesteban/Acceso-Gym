@@ -520,6 +520,157 @@
                 btnSubmit.textContent = ctx.btnSubmit;
             }
         }
+        
+        //22/07/2026 Calcular el precio total dinámicamente según los meses seleccionados
+function calcularMontoRenovacion() {
+  const PRECIO_MES = 60000; // Ajustar según la tarifa base del gimnasio
+  const meses = parseInt(document.getElementById('select-meses').value) || 1;
+  const total = PRECIO_MES * meses;
+  
+  document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
+}
+
+// Enviar la renovación a la API
+async function procesarRenovacion() {
+  const documento = document.getElementById('txt-documento-socio').value;
+  const nombre = document.getElementById('txt-nombre-socio').value;
+  const meses = parseInt(document.getElementById('select-meses').value) || 1;
+  const metodoPago = document.getElementById('select-metodo').value;
+  const PRECIO_MES = 60000;
+  const montoTotal = PRECIO_MES * meses;
+  
+  // Obtener usuario activo desde la sesión
+  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
+
+  try {
+    const res = await fetch('https://frankegonzalez.com/api/control-acceso/api.php?action=registrar_pago', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        documento: documento,
+        nombre: nombre,
+        tipo_ingreso: 'RENOVACION_MES',
+        meses: meses,
+        monto: montoTotal,
+        metodo_pago: metodoPago,
+        usuario_registro: usuarioSesion.username
+      })
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      alert(`✅ Renovación de ${meses} mes(es) registrada con éxito.`);
+      // Volver a consultar para refrescar el estado del socio
+      consultarSocio(documento);
+    } else {
+      alert('⚠️ Error al procesar pago: ' + data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('❌ Error de conexión con el servidor.');
+  }
+}
+    // Habilitar edición de campos de texto
+function habilitarEdicion() {
+  document.getElementById('txt-nombre-socio').removeAttribute('readonly');
+  document.getElementById('txt-telefono-socio').removeAttribute('readonly');
+  
+  document.getElementById('btn-editar-socio').classList.add('d-none');
+  document.getElementById('btn-guardar-socio').classList.remove('d-none');
+}
+
+// Guardar cambios en el backend
+async function guardarEdicionSocio() {
+  const idSocio = document.getElementById('txt-id-socio').value;
+  const nombre = document.getElementById('txt-nombre-socio').value;
+  const documento = document.getElementById('txt-documento-socio').value;
+  const telefono = document.getElementById('txt-telefono-socio').value;
+  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
+
+  try {
+    const res = await fetch('https://frankegonzalez.com/api/control-acceso/api.php?action=editar_socio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: idSocio,
+        nombre: nombre,
+        documento: documento,
+        telefono: telefono,
+        rol_usuario: usuarioSesion.rol
+      })
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      alert('💾 Datos actualizados correctamente');
+      document.getElementById('txt-nombre-socio').setAttribute('readonly', true);
+      document.getElementById('txt-telefono-socio').setAttribute('readonly', true);
+      document.getElementById('btn-editar-socio').classList.remove('d-none');
+      document.getElementById('btn-guardar-socio').classList.add('d-none');
+    } else {
+      alert('⚠️ ' + data.message);
+    }
+  } catch (error) {
+    alert('❌ No se pudo guardar la información.');
+  }
+}
+
+        async function consultarReportes() {
+  const fInicio = document.getElementById('rep-fecha-inicio').value;
+  const fFin = document.getElementById('rep-fecha-fin').value;
+  const tipo = document.getElementById('rep-tipo').value;
+
+  try {
+    const res = await fetch(`https://frankegonzalez.com/api/control-acceso/api.php?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}`);
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      // 1. Renderizar Resumen Monetario
+      const t = data.totales;
+      document.getElementById('resumen-totales').innerHTML = `
+        <div class="col-md-4"><strong>Total Recaudado:</strong> $${t.total_recaudado.toLocaleString('es-CO')}</div>
+        <div class="col-md-4"><strong>Efectivo:</strong> $${t.efectivo.toLocaleString('es-CO')}</div>
+        <div class="col-md-4"><strong>Digital (Nequi/Daviplata):</strong> $${t.nequi_daviplata.toLocaleString('es-CO')}</div>
+      `;
+
+      // 2. Renderizar Filas de la Tabla
+      const tbody = document.getElementById('tbody-reportes');
+      tbody.innerHTML = '';
+
+      data.logs.forEach(log => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${log.fecha_hora}</td>
+            <td>${log.nombre}</td>
+            <td>${log.documento}</td>
+            <td><span class="badge ${log.tipo_ingreso === 'DIA' ? 'badge-warning' : 'badge-success'}">${log.tipo_ingreso}</span></td>
+            <td>$${parseFloat(log.monto).toLocaleString('es-CO')}</td>
+            <td>${log.metodo_pago}</td>
+            <td>${log.usuario_registro}</td>
+          </tr>
+        `;
+      });
+    }
+  } catch (e) {
+    console.error('Error al cargar reportes:', e);
+  }
+}
+
+        document.addEventListener('DOMContentLoaded', () => {
+  const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit'));
+
+  // Si no hay sesión, se asume recepcion por defecto o se redirige a login
+  const rol = usuarioSesion ? usuarioSesion.rol : 'RECEPCION';
+
+  if (rol === 'ADMIN') {
+    document.getElementById('modulo-reportes')?.classList.remove('d-none');
+    document.getElementById('btn-editar-container')?.classList.remove('d-none');
+  } else {
+    document.getElementById('modulo-reportes')?.classList.add('d-none');
+    document.getElementById('btn-editar-container')?.classList.add('d-none');
+  }
+});
+        
     </script>
 </body>
 </html>
