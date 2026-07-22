@@ -593,20 +593,23 @@
     if (!password) return;
 
     try {
-        // Enviar action=login por la URL para activar el case 'login' de PHP
         const respuesta = await fetch(`${URL_API}?action=login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                username: 'admin', // Usuario por defecto para el panel
-                password: password
+                // Credenciales para la consulta del case 'login'
+                username: 'admin',
+                password: password,
+                // Parámetros adicionales para superar la validación previa de la API
+                documento: 'ADMIN',
+                cliente: clienteActual
             })
         });
         
         const data = await respuesta.json();
 
         if (data.status === "success") {
-            // Guardar en el almacenamiento local los datos recibidos del usuario
+            // Guardar sesión administrativa localmente
             localStorage.setItem('usuario_vidafit', JSON.stringify({ 
                 id: data.user.id,
                 username: data.user.username, 
@@ -614,7 +617,6 @@
                 rol: data.user.rol 
             }));
             
-            // Si el usuario validado es ADMIN, desbloquear funciones
             if (data.user.rol === 'ADMIN') {
                 document.getElementById('seccionLogin').style.display = 'none';
                 document.getElementById('camposFormulario').style.display = 'block';
@@ -624,7 +626,7 @@
                 
                 mostrarToast('success', `¡Bienvenido ${data.user.nombre}!`);
             } else {
-                mostrarToast('error', 'El usuario no tiene permisos de Administrador.');
+                mostrarToast('error', 'El usuario no tiene rol de Administrador.');
             }
         } else {
             mostrarToast('error', data.message || 'Contraseña incorrecta.');
@@ -632,7 +634,7 @@
         }
     } catch (error) {
         console.error(error);
-        mostrarToast('error', 'Error al intentar iniciar sesión.');
+        mostrarToast('error', 'Error de conexión con el servidor.');
     }
 }
         async function guardarRegistro(event) {
