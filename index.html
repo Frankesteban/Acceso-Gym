@@ -589,42 +589,52 @@
 
         async function verificarClaveAdmin() {
     const claveInput = document.getElementById('adminClave');
-    const clave = claveInput.value.trim();
-    if (!clave) return;
+    const password = claveInput.value.trim();
+    if (!password) return;
 
     try {
-        const respuesta = await fetch(URL_API, {
+        // Enviar action=login por la URL para activar el case 'login' de PHP
+        const respuesta = await fetch(`${URL_API}?action=login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                accion: 'validar_credencial', 
-                action: 'validar_credencial', 
-                clave: clave,
-                documento: 'ADMIN',           // Evita que salte el filtro de "Faltan datos obligatorios"
-                cliente: clienteActual
+                username: 'admin', // Usuario por defecto para el panel
+                password: password
             })
         });
+        
+        const data = await respuesta.json();
+
+        if (data.status === "success") {
+            // Guardar en el almacenamiento local los datos recibidos del usuario
+            localStorage.setItem('usuario_vidafit', JSON.stringify({ 
+                id: data.user.id,
+                username: data.user.username, 
+                nombre: data.user.nombre,
+                rol: data.user.rol 
+            }));
+            
+            // Si el usuario validado es ADMIN, desbloquear funciones
+            if (data.user.rol === 'ADMIN') {
+                document.getElementById('seccionLogin').style.display = 'none';
+                document.getElementById('camposFormulario').style.display = 'block';
+                document.getElementById('btnReportesNav')?.classList.remove('d-none');
+                document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+                claveInput.value = ""; 
                 
-                const data = await respuesta.json();
-
-                if (data.status === "success" && data.autorizado === true) {
-                    // Guardar sesión administrativa localmente
-                    localStorage.setItem('usuario_vidafit', JSON.stringify({ username: 'admin', rol: 'ADMIN' }));
-                    
-                    document.getElementById('seccionLogin').style.display = 'none';
-                    document.getElementById('camposFormulario').style.display = 'block';
-                    document.getElementById('btnReportesNav').classList.remove('d-none');
-                    document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
-                    claveInput.value = ""; 
-                } else {
-                    mostrarToast('error', data.message || 'Clave incorrecta.');
-                    claveInput.value = "";
-                }
-            } catch (error) {
-                mostrarToast('error', 'Error técnico al validar credenciales.');
+                mostrarToast('success', `¡Bienvenido ${data.user.nombre}!`);
+            } else {
+                mostrarToast('error', 'El usuario no tiene permisos de Administrador.');
             }
+        } else {
+            mostrarToast('error', data.message || 'Contraseña incorrecta.');
+            claveInput.value = "";
         }
-
+    } catch (error) {
+        console.error(error);
+        mostrarToast('error', 'Error al intentar iniciar sesión.');
+    }
+}
         async function guardarRegistro(event) {
             event.preventDefault();
             const payload = {
