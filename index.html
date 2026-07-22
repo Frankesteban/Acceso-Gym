@@ -88,7 +88,112 @@
     </style>
 </head>
 <body>
+    <!-- Componente para Renovación Multi-Mes -->
+<div id="seccion-renovacion" class="mt-3">
+  <label for="select-meses" class="form-label font-weight-bold">Cantidad de Meses:</label>
+  <select id="select-meses" class="form-control mb-2" onchange="calcularMontoRenovacion()">
+    <option value="1">1 Mes</option>
+    <option value="2">2 Meses</option>
+    <option value="3">3 Meses</option>
+    <option value="6">6 Meses</option>
+    <option value="12">1 Año</option>
+  </select>
 
+  <label for="select-metodo" class="form-label font-weight-bold">Método de Pago:</label>
+  <select id="select-metodo" class="form-control mb-2">
+    <option value="EFECTIVO">Efectivo</option>
+    <option value="NEQUI">Nequi</option>
+    <option value="DAVIPLATA">Daviplata</option>
+    <option value="TARJETA">Tarjeta</option>
+  </select>
+
+  <div class="h5 font-weight-bold text-success mb-3">
+    Total a cobrar: $<span id="lbl-monto-total">60000</span>
+  </div>
+
+  <button class="btn btn-success btn-block font-weight-bold" onclick="procesarRenovacion()">
+    💳 Confirmar Renovación
+  </button>
+</div>
+
+    <!-- Campos de Datos del Socio (Inhabilitados para Recepción / Habilitados para Admin) -->
+<div class="form-group mb-2">
+  <label>Nombre Completo:</label>
+  <input type="text" id="txt-nombre-socio" class="form-control" readonly>
+</div>
+<div class="form-group mb-2">
+  <label>Teléfono:</label>
+  <input type="text" id="txt-telefono-socio" class="form-control" readonly>
+</div>
+
+<!-- Botón visible solo si rol === 'ADMIN' -->
+<div id="btn-editar-container" class="d-none mt-2">
+  <button id="btn-editar-socio" class="btn btn-warning btn-sm" onclick="habilitarEdicion()">
+    ✏️ Editar Datos
+  </button>
+  <button id="btn-guardar-socio" class="btn btn-primary btn-sm d-none" onclick="guardarEdicionSocio()">
+    💾 Guardar Cambios
+  </button>
+</div>
+
+    <!-- Módulo de Reportes (Solo visible para ADMIN) -->
+<div id="modulo-reportes" class="card mt-4 d-none">
+  <div class="card-header bg-dark text-white font-weight-bold">
+    📊 Reporte de Caja y Accesos
+  </div>
+  <div class="card-body">
+    <div class="row mb-3">
+      <div class="col-md-3">
+        <label>Desde:</label>
+        <input type="date" id="rep-fecha-inicio" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label>Hasta:</label>
+        <input type="date" id="rep-fecha-fin" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <label>Tipo Ingreso:</label>
+        <select id="rep-tipo" class="form-control">
+          <option value="TODOS">Todos</option>
+          <option value="DIA">Días / Pasadías</option>
+          <option value="RENOVACION_MES">Renovaciones</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary btn-block" onclick="consultarReportes()">
+          🔍 Filtrar
+        </button>
+      </div>
+    </div>
+
+    <!-- Contenedor de Totales -->
+    <div class="row text-center mb-3" id="resumen-totales">
+      <!-- Se llena dinámicamente con JS (Total Efectivo, Nequi, etc.) -->
+    </div>
+
+    <!-- Tabla de Logs -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover" id="tabla-reportes">
+        <thead>
+          <tr>
+            <th>Fecha/Hora</th>
+            <th>Socio</th>
+            <th>Documento</th>
+            <th>Tipo</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Usuario</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-reportes">
+          <!-- Datos dinámicos -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+    
     <div id="toast" class="toast-container">
         <span id="toastIcono"></span>
         <span id="toastTexto">Mensaje del sistema</span>
