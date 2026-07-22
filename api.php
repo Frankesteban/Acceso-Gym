@@ -1,192 +1,233 @@
 <?php
 // api.php
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
 require_once 'conexion.php';
 
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+// Capturar payload JSON de forma totalmente segura
+$rawInput = file_get_contents("php://input");
+$jsonInput = json_decode($rawInput, true);
 
-switch ($action) {
+if (!is_array($jsonInput)) {
+    $jsonInput = [];
+}
 
-    // ========================================================
-    // 1. INICIO DE SESIÓN Y VERIFICACIÓN DE ROL
-    // ========================================================
-    case 'login':
-        $data = json_decode(file_get_contents("php://input"), true);
-        $username = trim($data['username'] ?? '');
-        $password = trim($data['password'] ?? '');
+// Mezclar todo lo recibido para no perder ninguna variable
+$requestData = array_merge($_GET, $_POST, $jsonInput);
 
-        $stmt = $pdo->prepare("SELECT id, username, password, nombre_completo, rol FROM usuarios_sistema WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
+$action = $requestData['action'] ?? '';
 
-        if ($user && password_verify($password, $user['password'])) {
-            echo json_encode([
-                "status" => "success",
-                "user" => [
-                    "id" => $user['id'],
-                    "username" => $user['username'],
-                    "nombre" => $user['nombre_completo'],
-                    "rol" => $user['rol']
-                ]
-            ]);
-        } else {
-            echo json_encode(["status" => "error", "message" => "Usuario o contraseña incorrectos"]);
-        }
-        break;
+try {
+    switch ($action) {
 
-    // ========================================================
-    // 2. CONSULTA DE SOCIO / AUTO-LOG DE INGRESO
-    // ========================================================
-    case 'consultar_socio':
-        $documento = $_GET['documento'] ?? '';
-        
-        $stmt = $pdo->prepare("SELECT * FROM miembros WHERE documento = ?");
-        $stmt->execute([$documento]);
-        $socio = $stmt->fetch();
+        // ========================================================
+        // 1. LOGIN
+        // ========================================================
+        case 'login':
+            $username = trim($requestData['username'] ?? '');
+            $password = trim($requestData['password'] ?? '');
 
-        if ($socio) {
-            $hoy = date('Y-m-d');
-            $vencido = ($socio['fecha_pago'] < $hoy);
-
-            // Si está activo, registra el acceso automáticamente
-            if (!$vencido) {
-                $logStmt = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, monto, usuario_registro, fecha_hora) VALUES (?, ?, ?, 'MENSUALIDAD', 0.00, 'recepcion', NOW())");
-                $logStmt->execute([$socio['cliente_tag'], $socio['documento'], $socio['nombre']]);
+            // Si por algún motivo siguen vacíos, revisamos si enviaron 'documento' o 'cliente'
+            if (empty($username) && !empty($requestData['documento'])) {
+                $username = trim($requestData['documento']);
             }
 
-            echo json_encode([
-                "status" => "success",
-                "encontrado" => true,
-                "vencido" => $vencido,
-                "socio" => $socio
-            ]);
-        } else {
-            echo json_encode(["status" => "success", "encontrado" => false]);
-        }
-        break;
+            if (empty($username) || empty($password)) {
+                echo json_encode([
+                    "status" => "error", 
+                    "message" => "Faltan credenciales", 
+                    "recibido" => $requestData // Para que veas exactamente qué llegó
+                ]);
+                break;
+            }
 
-    // ========================================================
-    // 3. REGISTRAR PAGO (DÍA O RENOVACIÓN MULTI-MES)
-    // ========================================================
-    case 'registrar_pago':
-        $data = json_decode(file_get_contents("php://input"), true);
-        
-        $documento     = $data['documento'];
-        $nombre        = $data['nombre'];
-        $tipoIngreso   = $data['tipo_ingreso']; // 'DIA' o 'RENOVACION_MES'
-        $meses         = intval($data['meses'] ?? 1);
-        $monto         = floatval($data['monto']);
-        $metodoPago    = $data['metodo_pago'] ?? 'EFECTIVO';
-        $usuarioActual = $data['usuario_registro'] ?? 'recepcion';
+            $stmt = $pdo->prepare("SELECT id, username, password, nombre_completo, rol FROM usuarios_sistema WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($tipoIngreso === 'RENOVACION_MES') {
-            // Obtener fecha actual de vencimiento
-            $stmt = $pdo->prepare("SELECT fecha_pago FROM miembros WHERE documento = ?");
+            if ($user && password_verify($password, $user['password'])) {
+                echo json_encode([
+                    "status" => "success",
+                    "user" => [
+                        "id" => $user['id'],
+                        "username" => $user['username'],
+                        "nombre" => $user['nombre_completo'],
+                        "rol" => $user['rol']
+                    ]
+                ]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Usuario o contraseña incorrectos"]);
+            }
+            break;
+
+        // ========================================================
+        // 2. CONSULTAR SOCIO
+        // ========================================================
+        case 'consultar_socio':
+            $documento = trim($requestData['documento'] ?? '');
+
+            if (empty($documento)) {
+                echo json_encode(["status" => "error", "message" => "Documento requerido"]);
+                break;
+            }
+
+            $stmt = $pdo->prepare("SELECT * FROM miembros WHERE documento = ?");
             $stmt->execute([$documento]);
-            $socio = $stmt->fetch();
+            $socio = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $baseDate = new DateTime();
-            if ($socio && new DateTime($socio['fecha_pago']) > $baseDate) {
-                // Si la membresía aún no vence, se suman los meses desde la fecha de vencimiento actual
-                $baseDate = new DateTime($socio['fecha_pago']);
+            if ($socio) {
+                $hoy = date('Y-m-d');
+                $vencido = ($socio['fecha_pago'] < $hoy);
+
+                if (!$vencido) {
+                    $logStmt = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, monto, usuario_registro, fecha_hora) VALUES (?, ?, ?, 'MENSUALIDAD', 0.00, 'recepcion', NOW())");
+                    $logStmt->execute([
+                        $socio['cliente_tag'] ?? 'vidafit', 
+                        $socio['documento'], 
+                        $socio['nombre']
+                    ]);
+                }
+
+                echo json_encode([
+                    "status" => "success",
+                    "encontrado" => true,
+                    "vencido" => $vencido,
+                    "socio" => $socio
+                ]);
+            } else {
+                echo json_encode(["status" => "success", "encontrado" => false]);
             }
-            
-            // Sumar los N meses seleccionados
-            $baseDate->modify("+{$meses} month");
-            $nuevaFechaPago = $baseDate->format('Y-m-d');
+            break;
 
-            // Actualizar la fecha en la tabla miembros
-            $update = $pdo->prepare("UPDATE miembros SET fecha_pago = ? WHERE documento = ?");
-            $update->execute([$nuevaFechaPago, $documento]);
-        }
+        // ========================================================
+        // 3. REGISTRAR PAGO
+        // ========================================================
+        case 'registrar_pago':
+            $documento     = trim($requestData['documento'] ?? '');
+            $nombre        = trim($requestData['nombre'] ?? 'Socio');
+            $tipoIngreso   = $requestData['tipo_ingreso'] ?? 'DIA';
+            $meses         = max(1, intval($requestData['meses'] ?? 1));
+            $monto         = floatval($requestData['monto'] ?? 0);
+            $metodoPago    = $requestData['metodo_pago'] ?? 'EFECTIVO';
+            $usuarioActual = trim($requestData['usuario_registro'] ?? 'recepcion');
+            $clienteTag    = trim($requestData['cliente'] ?? 'vidafit');
 
-        // Registrar en la tabla de auditoría / logs de caja
-        $log = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, meses_pagados, monto, metodo_pago, usuario_registro, fecha_hora) VALUES ('vidafit', ?, ?, ?, ?, ?, ?, ?, NOW())");
-        $log->execute([$documento, $nombre, $tipoIngreso, $meses, $monto, $metodoPago, $usuarioActual]);
+            if (empty($documento)) {
+                echo json_encode(["status" => "error", "message" => "Documento es obligatorio"]);
+                break;
+            }
 
-        echo json_encode(["status" => "success", "message" => "Transacción registrada con éxito"]);
-        break;
+            $pdo->beginTransaction();
 
-    // ========================================================
-    // 4. EDICIÓN DE SOCIO (SOLO ROL ADMIN)
-    // ========================================================
-    case 'editar_socio':
-        $data = json_decode(file_get_contents("php://input"), true);
-        
-        if (($data['rol_usuario'] ?? '') !== 'ADMIN') {
-            echo json_encode(["status" => "error", "message" => "Acceso denegado. Se requieren permisos de Administrador."]);
-            exit;
-        }
+            if ($tipoIngreso === 'RENOVACION_MES') {
+                $stmt = $pdo->prepare("SELECT fecha_pago FROM miembros WHERE documento = ? FOR UPDATE");
+                $stmt->execute([$documento]);
+                $socio = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $id        = $data['id'];
-        $nombre    = trim($data['nombre']);
-        $documento = trim($data['documento']);
-        $telefono  = trim($data['telefono']);
+                if ($socio) {
+                    $today = new DateTime('today');
+                    $currentFechaPago = new DateTime($socio['fecha_pago']);
 
-        $stmt = $pdo->prepare("UPDATE miembros SET nombre = ?, documento = ?, telefono = ? WHERE id = ?");
-        $stmt->execute([$nombre, $documento, $telefono, $id]);
+                    $baseDate = ($currentFechaPago > $today) ? $currentFechaPago : $today;
+                    $baseDate->modify("+{$meses} month");
+                    $nuevaFechaPago = $baseDate->format('Y-m-d');
 
-        echo json_encode(["status" => "success", "message" => "Datos actualizados correctamente"]);
-        break;
+                    $update = $pdo->prepare("UPDATE miembros SET fecha_pago = ? WHERE documento = ?");
+                    $update->execute([$nuevaFechaPago, $documento]);
+                }
+            }
 
-    // ========================================================
-    // 5. REPORTES Y CIERRE DE CAJA (FILTROS)
-    // ========================================================
-    case 'obtener_reportes':
-        $fechaInicio = $_GET['fecha_inicio'] ?? date('Y-m-d');
-        $fechaFin    = $_GET['fecha_fin'] ?? date('Y-m-d');
-        $tipo        = $_GET['tipo'] ?? 'TODOS';
-        $metodo      = $_GET['metodo'] ?? 'TODOS';
+            $log = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, meses_pagados, monto, metodo_pago, usuario_registro, fecha_hora) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+            $log->execute([$clienteTag, $documento, $nombre, $tipoIngreso, $meses, $monto, $metodoPago, $usuarioActual]);
 
-        $query = "SELECT * FROM logs_acceso WHERE DATE(fecha_hora) BETWEEN ? AND ?";
-        $params = [$fechaInicio, $fechaFin];
+            $pdo->commit();
 
-        if ($tipo !== 'TODOS') {
-            $query .= " AND tipo_ingreso = ?";
-            $params[] = $tipo;
-        }
+            echo json_encode(["status" => "success", "message" => "Transacción registrada con éxito"]);
+            break;
 
-        if ($metodo !== 'TODOS') {
-            $query .= " AND metodo_pago = ?";
-            $params[] = $metodo;
-        }
+        // ========================================================
+        // 4. REPORTES
+        // ========================================================
+        case 'obtener_reportes':
+            $fechaInicio = $requestData['fecha_inicio'] ?? date('Y-m-d');
+            $fechaFin    = $requestData['fecha_fin'] ?? date('Y-m-d');
+            $tipo        = $requestData['tipo'] ?? 'TODOS';
+            $metodo      = $requestData['metodo'] ?? 'TODOS';
 
-        $query .= " ORDER BY fecha_hora DESC";
+            $query = "SELECT * FROM logs_acceso WHERE DATE(fecha_hora) BETWEEN ? AND ?";
+            $params = [$fechaInicio, $fechaFin];
 
-        $stmt = $pdo->prepare($query);
-        $stmt->execute($params);
-        $logs = $stmt->fetchAll();
+            if ($tipo !== 'TODOS') {
+                $query .= " AND tipo_ingreso = ?";
+                $params[] = $tipo;
+            }
 
-        // Totales consolidados para el cierre
-        $totales = [
-            "total_recaudado" => 0,
-            "efectivo" => 0,
-            "nequi_daviplata" => 0,
-            "tarjeta" => 0,
-            "conteo_dias" => 0,
-            "conteo_renovaciones" => 0
-        ];
+            if ($metodo !== 'TODOS') {
+                $query .= " AND metodo_pago = ?";
+                $params[] = $metodo;
+            }
 
-        foreach ($logs as $item) {
-            $monto = floatval($item['monto']);
-            $totales['total_recaudado'] += $monto;
+            $query .= " ORDER BY fecha_hora DESC";
 
-            if ($item['metodo_pago'] === 'EFECTIVO') $totales['efectivo'] += $monto;
-            if (in_array($item['metodo_pago'], ['NEQUI', 'DAVIPLATA'])) $totales['nequi_daviplata'] += $monto;
-            if ($item['metodo_pago'] === 'TARJETA') $totales['tarjeta'] += $monto;
+            $stmt = $pdo->prepare($query);
+            $stmt->execute($params);
+            $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if ($item['tipo_ingreso'] === 'DIA') $totales['conteo_dias']++;
-            if ($item['tipo_ingreso'] === 'RENOVACION_MES') $totales['conteo_renovaciones']++;
-        }
+            $totales = [
+                "total_recaudado"     => 0,
+                "efectivo"            => 0,
+                "nequi_daviplata"     => 0,
+                "tarjeta"             => 0,
+                "conteo_dias"         => 0,
+                "conteo_renovaciones" => 0
+            ];
 
-        echo json_encode([
-            "status" => "success",
-            "totales" => $totales,
-            "logs" => $logs
-        ]);
-        break;
+            foreach ($logs as $item) {
+                $monto = floatval($item['monto']);
+                $totales['total_recaudado'] += $monto;
 
-    default:
-        echo json_encode(["status" => "error", "message" => "Acción no válida"]);
-        break;
+                if ($item['metodo_pago'] === 'EFECTIVO') $totales['efectivo'] += $monto;
+                if (in_array($item['metodo_pago'], ['NEQUI', 'DAVIPLATA'])) $totales['nequi_daviplata'] += $monto;
+                if ($item['metodo_pago'] === 'TARJETA') $totales['tarjeta'] += $monto;
+
+                if ($item['tipo_ingreso'] === 'DIA') $totales['conteo_dias']++;
+                if ($item['tipo_ingreso'] === 'RENOVACION_MES') $totales['conteo_renovaciones']++;
+            }
+
+            echo json_encode([
+                "status"  => "success",
+                "totales" => $totales,
+                "logs"    => $logs
+            ]);
+            break;
+
+        default:
+            echo json_encode([
+                "status" => "error", 
+                "message" => "Acción no especificada",
+                "datos_recibidos" => $requestData
+            ]);
+            break;
+    }
+} catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    echo json_encode([
+        "status" => "error",
+        "message" => "Error PHP: " . $e->getMessage()
+    ]);
 }
 ?>
