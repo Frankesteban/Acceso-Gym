@@ -1,15 +1,27 @@
 <?php
 // api.php
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 
-// Evitar que errores o avisos de PHP rompan la estructura del JSON
+// Manejo de peticiones preflight OPTIONS si aplicas CORS desde Vercel
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Ocultar warnings de PHP para que no dañen la estructura del JSON devuelto
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 require_once 'conexion.php';
 
-// Se captura 'action' desde la URL (?action=...) o desde el cuerpo JSON
-$jsonInput = json_decode(file_get_contents("php://input"), true) ?? [];
+// Leer payload JSON si existe
+$rawInput = file_get_contents("php://input");
+$jsonInput = json_decode($rawInput, true) ?? [];
+
+// Determinar la acción enviada en URL (?action=...) o dentro del JSON
 $action = $_GET['action'] ?? $_POST['action'] ?? ($jsonInput['action'] ?? '');
 
 try {
@@ -19,10 +31,12 @@ try {
         // 1. INICIO DE SESIÓN Y VERIFICACIÓN DE ROL
         // ========================================================
         case 'login':
-            $username = trim($jsonInput['username'] ?? $_POST['username'] ?? '');
-            $password = trim($jsonInput['password'] ?? $_POST['password'] ?? '');
+            // Buscar credenciales en cualquier método de envío
+            $username = trim($jsonInput['username'] ?? $_POST['username'] ?? $_GET['username'] ?? '');
+            $password = trim($jsonInput['password'] ?? $_POST['password'] ?? $_GET['password'] ?? '');
 
             if ($username === '' || $password === '') {
+                http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "Faltan datos obligatorios."]);
                 break;
             }
@@ -32,6 +46,7 @@ try {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user && password_verify($password, $user['password'])) {
+                http_response_code(200);
                 echo json_encode([
                     "status" => "success",
                     "user" => [
@@ -42,6 +57,7 @@ try {
                     ]
                 ]);
             } else {
+                http_response_code(200); // 200 OK pero con status error para manejo en frontend
                 echo json_encode(["status" => "error", "message" => "Usuario o contraseña incorrectos"]);
             }
             break;
@@ -53,6 +69,7 @@ try {
             $documento = trim($_GET['documento'] ?? $_POST['documento'] ?? $jsonInput['documento'] ?? '');
 
             if ($documento === '') {
+                http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "El número de documento es obligatorio"]);
                 break;
             }
@@ -65,7 +82,6 @@ try {
                 $hoy = date('Y-m-d');
                 $vencido = ($socio['fecha_pago'] < $hoy);
 
-                // Si está activo, registra el acceso automáticamente
                 if (!$vencido) {
                     $logStmt = $pdo->prepare("INSERT INTO logs_acceso (cliente_tag, documento, nombre, tipo_ingreso, monto, usuario_registro, fecha_hora) VALUES (?, ?, ?, 'MENSUALIDAD', 0.00, 'recepcion', NOW())");
                     $logStmt->execute([
@@ -75,6 +91,7 @@ try {
                     ]);
                 }
 
+                http_response_code(200);
                 echo json_encode([
                     "status" => "success",
                     "encontrado" => true,
@@ -82,12 +99,13 @@ try {
                     "socio" => $socio
                 ]);
             } else {
+                http_response_code(200);
                 echo json_encode(["status" => "success", "encontrado" => false]);
             }
             break;
 
         // ========================================================
-        // 3. REGISTRAR PAGO (DÍA O RENOVACIÓN MULTI-MES)
+        // 3. REGISTRAR PAGO
         // ========================================================
         case 'registrar_pago':
             $documento     = trim($jsonInput['documento'] ?? $_POST['documento'] ?? '');
@@ -100,6 +118,7 @@ try {
             $clienteTag    = trim($jsonInput['cliente'] ?? 'vidafit');
 
             if ($documento === '') {
+                http_response_code(400);
                 echo json_encode(["status" => "error", "message" => "El campo documento es obligatorio para el registro"]);
                 break;
             }
@@ -113,6 +132,7 @@ try {
 
                 if (!$socio) {
                     $pdo->rollBack();
+                    http_response_code(200);
                     echo json_encode(["status" => "error", "message" => "El socio no existe en el sistema"]);
                     break;
                 }
@@ -133,31 +153,12 @@ try {
 
             $pdo->commit();
 
+            http_response_code(200);
             echo json_encode(["status" => "success", "message" => "Transacción registrada con éxito"]);
             break;
 
         // ========================================================
-        // 4. EDICIÓN DE SOCIO
-        // ========================================================
-        case 'editar_socio':
-            if (($jsonInput['rol_usuario'] ?? $_POST['rol_usuario'] ?? '') !== 'ADMIN') {
-                echo json_encode(["status" => "error", "message" => "Acceso denegado. Se requieren permisos de Administrador."]);
-                break;
-            }
-
-            $id        = intval($jsonInput['id'] ?? $_POST['id'] ?? 0);
-            $nombre    = trim($jsonInput['nombre'] ?? $_POST['nombre'] ?? '');
-            $documento = trim($jsonInput['documento'] ?? $_POST['documento'] ?? '');
-            $telefono  = trim($jsonInput['telefono'] ?? $_POST['telefono'] ?? '');
-
-            $stmt = $pdo->prepare("UPDATE miembros SET nombre = ?, documento = ?, telefono = ? WHERE id = ?");
-            $stmt->execute([$nombre, $documento, $telefono, $id]);
-
-            echo json_encode(["status" => "success", "message" => "Datos actualizados correctamente"]);
-            break;
-
-        // ========================================================
-        // 5. REPORTES Y CIERRE DE CAJA
+        // 4. REPORTES
         // ========================================================
         case 'obtener_reportes':
             $fechaInicio = $_GET['fecha_inicio'] ?? $jsonInput['fecha_inicio'] ?? date('Y-m-d');
@@ -205,6 +206,7 @@ try {
                 if ($item['tipo_ingreso'] === 'RENOVACION_MES') $totales['conteo_renovaciones']++;
             }
 
+            http_response_code(200);
             echo json_encode([
                 "status"  => "success",
                 "totales" => $totales,
@@ -213,6 +215,7 @@ try {
             break;
 
         default:
+            http_response_code(400);
             echo json_encode(["status" => "error", "message" => "Acción no válida o no especificada."]);
             break;
     }
@@ -221,6 +224,7 @@ try {
         $pdo->rollBack();
     }
 
+    http_response_code(500);
     echo json_encode([
         "status" => "error",
         "message" => "Error interno: " . $e->getMessage()
