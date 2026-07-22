@@ -588,19 +588,22 @@
         }
 
         async function verificarClaveAdmin() {
-            const claveInput = document.getElementById('adminClave');
-            if (!claveInput.value.trim()) return;
+    const claveInput = document.getElementById('adminClave');
+    const clave = claveInput.value.trim();
+    if (!clave) return;
 
-            try {
-                const respuesta = await fetch(URL_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'validar_credencial',
-                        clave: claveInput.value.trim(),
-                        cliente: clienteActual
-                    })
-                });
+    try {
+        const respuesta = await fetch(URL_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                accion: 'validar_credencial', 
+                action: 'validar_credencial', 
+                clave: clave,
+                documento: 'ADMIN',           // Evita que salte el filtro de "Faltan datos obligatorios"
+                cliente: clienteActual
+            })
+        });
                 
                 const data = await respuesta.json();
 
