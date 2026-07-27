@@ -563,6 +563,40 @@ if (inputDocAdmin) {
         }
     });
 }
+        // Autocompletado en el Panel Administrativo
+const inputDocAdmin = document.getElementById('txt-documento-socio');
+
+if (inputDocAdmin) {
+    // Se ejecuta al presionar Enter o al salir del campo (blur/change)
+    inputDocAdmin.addEventListener('change', async () => {
+        const documento = inputDocAdmin.value.trim();
+        if (!documento) return;
+
+        try {
+            // Enviamos action=consultar_socio y modo=admin
+            const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=admin&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+            const data = await respuesta.json();
+
+            if (data.status === "success" && data.encontrado && data.socio) {
+                // Rellenar Nombre
+                const inputNombre = document.getElementById('txt-nombre-socio');
+                if (inputNombre) inputNombre.value = data.socio.nombre;
+
+                // Rellenar Fecha de Pago si el campo existe en tu HTML
+                const inputFecha = document.getElementById('txt-fecha-pago');
+                if (inputFecha && data.socio.fecha_pago) {
+                    inputFecha.value = data.socio.fecha_pago;
+                }
+            } else {
+                // Si es un socio nuevo, limpiar el campo de nombre para que digiten uno nuevo
+                const inputNombre = document.getElementById('txt-nombre-socio');
+                if (inputNombre) inputNombre.value = '';
+            }
+        } catch (error) {
+            console.error("Error al consultar datos del socio:", error);
+        }
+    });
+}
         // 📊 MODAL Y CONSULTA DE REPORTES
         function abrirReportes() {
             modalReportes.classList.add('visible');
