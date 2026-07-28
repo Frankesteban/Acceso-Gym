@@ -76,7 +76,7 @@
             background: #1c1c1e; padding: 30px; border-radius: 12px;
             width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto;
         }
-        .modal-contenido.ancho-especial { max-width: 880px; }
+        .modal-contenido.ancho-especial { max-width: 900px; }
         .modal-contenido h2 { font-family: 'Bebas Neue', cursive; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
         
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -237,7 +237,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES -->
+    <!-- MODAL DE REPORTES CON BOTÓN DE EXCEL -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -263,9 +263,10 @@
                         <option value="TODOS">📋 Historial Completo</option>
                     </select>
                 </div>
-                <div style="flex:1; min-width:180px; display:flex; align-items:flex-end; gap:5px;">
+                <div style="flex:1; min-width:240px; display:flex; align-items:flex-end; gap:5px;">
                     <button class="btn-block" style="margin:0; padding:9px;" onclick="consultarReportes()">🔍 Filtrar</button>
                     <button class="btn-block btn-success" style="margin:0; padding:9px; width:auto;" onclick="consultarReportes()" title="Actualizar Datos">🔄</button>
+                    <button class="btn-block btn-success" style="margin:0; padding:9px; width:auto; background:#107c41; color:white;" onclick="exportarExcel()" title="Descargar Excel">📥 Excel</button>
                 </div>
             </div>
 
@@ -344,7 +345,7 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO (AUDITORÍA DE USUARIO EN SESIÓN)
+        // 🔍 CONSULTAR SOCIO
         async function procesarAcceso() {
             const documento = input.value.replace(/[^0-9]/g, '');
             if (!documento) return;
@@ -871,6 +872,54 @@
             } catch (e) {
                 console.error('Error al cargar reportes:', e);
                 mostrarToast('error', 'Error al cargar los datos del reporte');
+            }
+        }
+
+        // 📥 EXPORTAR REPORTE A EXCEL
+        function exportarExcel() {
+            const tbody = document.getElementById('tbody-reportes');
+            const filas = tbody.querySelectorAll('tr');
+
+            if (!filas.length || tbody.innerText.includes('No hay registros')) {
+                mostrarToast('error', 'No hay datos en la tabla para exportar.');
+                return;
+            }
+
+            let csvContent = "Fecha/Hora;Socio;Documento;Tipo;Monto;Metodo Pago;Usuario Registro\n";
+
+            filas.forEach(fila => {
+                const celdas = fila.querySelectorAll('td');
+                if (celdas.length >= 7) {
+                    const fecha   = `"${celdas[0].innerText.trim()}"`;
+                    const socio   = `"${celdas[1].innerText.trim().replace(/"/g, '""')}"`;
+                    const doc     = `"${celdas[2].innerText.trim()}"`;
+                    const tipo    = `"${celdas[3].innerText.trim()}"`;
+                    const monto   = `"${celdas[4].innerText.trim()}"`;
+                    const metodo  = `"${celdas[5].innerText.trim()}"`;
+                    const usuario = `"${celdas[6].innerText.trim()}"`;
+
+                    csvContent += `${fecha};${socio};${doc};${tipo};${monto};${metodo};${usuario}\n`;
+                }
+            });
+
+            const BOM = "\uFEFF";
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            const fInicio = document.getElementById('rep-fecha-inicio').value || 'reporte';
+            const fFin = document.getElementById('rep-fecha-fin').value || 'caja';
+            const nombreArchivo = `Reporte_VidaFit_${fInicio}_al_${fFin}.csv`;
+
+            const link = document.createElement("a");
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", nombreArchivo);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                mostrarToast('success', 'Reporte descargado correctamente.');
             }
         }
 
