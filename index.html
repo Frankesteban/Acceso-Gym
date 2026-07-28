@@ -518,50 +518,36 @@
                 mostrarToast('error', 'No se pudo guardar la información.');
             }
         }
-// Escuchar cuando el admin escribe o sale del campo documento
-const inputDocAdmin = document.getElementById('txt-documento-socio'); // Verifica que coincida con tu ID real
+// Ámbito aislado para evitar conflictos con variables anteriores
+{
+    const elInputDoc = document.getElementById('txt-documento-socio');
 
-if (inputDocAdmin) {
-    inputDocAdmin.addEventListener('blur', async () => {
-        const documento = inputDocAdmin.value.trim();
-        if (!documento) return;
+    if (elInputDoc) {
+        elInputDoc.addEventListener('change', async () => {
+            const documento = elInputDoc.value.trim();
+            if (!documento) return;
 
-        try {
-            // Consultar a la API si el socio existe
-            const respuesta = await fetch(`${URL_API}?accion=consultar_socio&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
-            const data = await respuesta.json();
+            try {
+                const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=admin&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+                const data = await respuesta.json();
 
-            if (data.status === "success" && data.encontrado && data.socio) {
-                // AUTOCOMPLETAR CAMPOS SI YA EXISTE
-                document.getElementById('txt-nombre-socio').value = data.socio.nombre || '';
-                
-                // Si tienes un campo hidden para el ID de la base de datos:
-                const inputIdSocio = document.getElementById('txt-id-socio');
-                if (inputIdSocio) inputIdSocio.value = data.socio.id || '';
+                if (data.status === "success" && data.encontrado && data.socio) {
+                    const elInputNombre = document.getElementById('txt-nombre-socio');
+                    if (elInputNombre) elInputNombre.value = data.socio.nombre || '';
 
-                // Autocompletar la fecha de pago actual si aplica
-                const inputFecha = document.getElementById('txt-fecha-pago'); // Ajusta el ID al tuyo
-                if (inputFecha && data.socio.fecha_pago) {
-                    inputFecha.value = data.socio.fecha_pago;
+                    const elInputFecha = document.getElementById('txt-fecha-pago');
+                    if (elInputFecha && data.socio.fecha_pago) {
+                        elInputFecha.value = data.socio.fecha_pago;
+                    }
+                } else {
+                    const elInputNombre = document.getElementById('txt-nombre-socio');
+                    if (elInputNombre) elInputNombre.value = '';
                 }
-
-                // Cambiar el texto del botón visualmente para indicar edición
-                const btnGuardar = document.getElementById('btn-guardar-socio'); // Ajusta el ID
-                if (btnGuardar) btnGuardar.innerText = "Actualizar Socio Exister";
-
-            } else {
-                // SI NO EXISTE: Limpiar campos (excepto documento) para un nuevo registro
-                document.getElementById('txt-nombre-socio').value = '';
-                const inputIdSocio = document.getElementById('txt-id-socio');
-                if (inputIdSocio) inputIdSocio.value = '';
-
-                const btnGuardar = document.getElementById('btn-guardar-socio');
-                if (btnGuardar) btnGuardar.innerText = "Guardar / Registrar Socio";
+            } catch (error) {
+                console.error("Error al consultar socio:", error);
             }
-        } catch (error) {
-            console.error("Error al autocompletar socio:", error);
-        }
-    });
+        });
+    }
 }
         // 📊 MODAL Y CONSULTA DE REPORTES
         function abrirReportes() {
