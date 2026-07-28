@@ -237,7 +237,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES CON BOTÓN DE ACTUALIZAR -->
+    <!-- MODAL DE REPORTES -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -464,7 +464,7 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR PAGO DESDE RECEPCIÓN (MONTO SANITIZADO NUMÉRICO)
+        // 💳 REGISTRAR PAGO RECEPCIÓN
         async function procesarRenovacion(event) {
             const btn = document.getElementById('btnProcesarPago');
             if (btn) btn.disabled = true;
@@ -730,7 +730,7 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // GUARDAR REGISTRO DESDE ADMIN CON VALOR MONETARIO NUMÉRICO
+        // GUARDAR REGISTRO DESDE ADMIN
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
@@ -785,9 +785,20 @@
         // REPORTES
         function abrirReportes() {
             modalReportes.classList.add('visible');
-            const hoy = new Date().toISOString().split('T')[0];
-            document.getElementById('rep-fecha-inicio').value = hoy;
-            document.getElementById('rep-fecha-fin').value = hoy;
+            
+            const ahora = new Date();
+            const year = ahora.getFullYear();
+            const month = String(ahora.getMonth() + 1).padStart(2, '0');
+            const day = String(ahora.getDate()).padStart(2, '0');
+            const hoyLocal = `${year}-${month}-${day}`;
+
+            if (!document.getElementById('rep-fecha-inicio').value) {
+                document.getElementById('rep-fecha-inicio').value = hoyLocal;
+            }
+            if (!document.getElementById('rep-fecha-fin').value) {
+                document.getElementById('rep-fecha-fin').value = hoyLocal;
+            }
+
             consultarReportes();
         }
 
@@ -802,7 +813,7 @@
             const tipo = document.getElementById('rep-tipo').value;
 
             try {
-                const res = await fetch(`${URL_API}?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}&_=${new Date().getTime()}`);
+                const res = await fetch(`${URL_API}?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}&nocache=${new Date().getTime()}`);
                 const data = await res.json();
 
                 if (data.status === 'success') {
@@ -817,20 +828,28 @@
                     const tbody = document.getElementById('tbody-reportes');
                     tbody.innerHTML = '';
 
+                    if (!data.logs || data.logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#888;">No hay registros en el rango seleccionado.</td></tr>';
+                        return;
+                    }
+
                     data.logs.forEach(log => {
                         let badgeColor = '#2ec4b6';
-                        let labelTipo = log.tipo_ingreso;
+                        let labelTipo = log.tipo_ingreso || 'TRANSACCIÓN';
 
-                        if (log.tipo_ingreso === 'INSCRIPCION') {
+                        const tipoUpper = String(log.tipo_ingreso).toUpperCase();
+
+                        if (tipoUpper === 'INSCRIPCION' || tipoUpper === 'INSCRIPCIÓN') {
                             badgeColor = '#ff8c00';
                             labelTipo = 'NUEVA INSCRIPCIÓN';
-                        } else if (log.tipo_ingreso === 'DIA') {
+                        } else if (tipoUpper === 'DIA' || tipoUpper === 'PASADÍA') {
                             badgeColor = '#e2b93b';
                             labelTipo = 'PASADÍA / DÍA';
-                        } else if (log.tipo_ingreso === 'ACCESO' || parseFloat(log.monto) === 0) {
+                        } else if (tipoUpper === 'ACCESO' || parseFloat(log.monto) === 0) {
                             badgeColor = '#8d99ae';
                             labelTipo = 'CONTROL ACCESO';
-                        } else if (log.tipo_ingreso === 'RENOVACION_MES' || log.tipo_ingreso === 'MENSUALIDAD') {
+                        } else if (tipoUpper === 'RENOVACION_MES' || tipoUpper === 'MENSUALIDAD') {
+                            badgeColor = '#2ec4b6';
                             labelTipo = 'RENOVACIÓN MES';
                         }
 
@@ -841,8 +860,8 @@
                                 <td>${log.documento}</td>
                                 <td><strong style="color:${badgeColor}">${labelTipo}</strong></td>
                                 <td>$${parseFloat(log.monto).toLocaleString('es-CO')}</td>
-                                <td>${log.metodo_pago}</td>
-                                <td>${log.usuario_registro}</td>
+                                <td>${log.metodo_pago || 'EFECTIVO'}</td>
+                                <td>${log.usuario_registro || 'recepcion'}</td>
                             </tr>
                         `;
                     });
