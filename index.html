@@ -76,7 +76,7 @@
             background: #1c1c1e; padding: 30px; border-radius: 12px;
             width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto;
         }
-        .modal-contenido.ancho-especial { max-width: 980px; }
+        .modal-contenido.ancho-especial { max-width: 900px; }
         .modal-contenido h2 { font-family: 'Bebas Neue', cursive; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
         
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -95,7 +95,7 @@
         /* 🛠️ ESTILOS UNIFICADOS PARA BOTONES DE REPORTES */
         .btn-accion-rep {
             height: 40px;
-            padding: 0 12px;
+            padding: 0 14px;
             border: none;
             border-radius: 6px;
             font-family: 'Montserrat', sans-serif;
@@ -113,7 +113,7 @@
             margin: 0;
         }
         .btn-accion-rep:hover { transform: translateY(-1px); }
-        .btn-filtrar { background: var(--branding-orange); flex: 1; }
+        .btn-filtrar { background: var(--branding-orange); }
         .btn-filtrar:hover { background: #e07b00; }
         .btn-refrescar { background: #2ec4b6; color: #121214; padding: 0 12px; }
         .btn-refrescar:hover { background: #26a99d; }
@@ -283,10 +283,15 @@
     </div>
 
     <!-- MODAL DE REPORTES -->
-    <!-- 🛠️ FILTROS Y ACCIONES EN 2 FILAS (SIN SCROLL HORIZONTAL) -->
+    <div id="modalReportes" class="modal">
+        <div class="modal-contenido ancho-especial">
+            <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
+            <h2>📊 Reporte de Caja y Accesos</h2>
+            
+            <!-- 🛠️ ESTRUCTURA EN 2 FILAS PARA EVITAR SCROLL HORIZONTAL -->
             <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:15px;">
                 
-                <!-- Fila 1: Selectores y Fechas -->
+                <!-- Fila 1: Fechas y Filtro -->
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <div style="flex:1; min-width:130px;">
                         <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Desde:</label>
@@ -309,7 +314,7 @@
                     </div>
                 </div>
 
-                <!-- Fila 2: Botones de Acción sobre la tabla -->
+                <!-- Fila 2: Botones de Acción centrados/alineados -->
                 <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
                     <button class="btn-accion-rep btn-filtrar" style="flex:1; min-width:120px;" onclick="consultarReportes()">
                         🔍 Filtrar
@@ -325,23 +330,6 @@
                     </button>
                 </div>
 
-            </div>
-                
-                <!-- 🛠️ BOTONES CON ALINEACIÓN Y TAMAÑO UNIFICADO -->
-                <div style="flex:1; min-width:320px; display:flex; align-items:center; gap:8px;">
-                    <button class="btn-accion-rep btn-filtrar" onclick="consultarReportes()">
-                        🔍 Filtrar
-                    </button>
-                    <button class="btn-accion-rep btn-refrescar" onclick="consultarReportes()" title="Actualizar Datos">
-                        🔄
-                    </button>
-                    <button class="btn-accion-rep btn-excel-mov" onclick="exportarExcel()" title="Descargar Excel de Transacciones">
-                        📥 Excel Movimientos
-                    </button>
-                    <button class="btn-accion-rep btn-excel-socios" onclick="exportarReporteSocios()" title="Descargar Listado Completo de Socios">
-                        👥 Exportar Socios
-                    </button>
-                </div>
             </div>
 
             <div id="resumen-totales" style="margin:15px 0; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; display:flex; justify-content:space-around; font-weight:bold;"></div>
