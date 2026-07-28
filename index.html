@@ -157,11 +157,23 @@
                 <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio()">💾 Guardar Cambios</button>
             </div>
 
-            <!-- MÓDULO DE RENOVACIÓN / PAGO (VISIBLE CUANDO ESTÁ VENCIDO O SE REQUIERE COBRO) -->
+            <!-- MÓDULO DE REGISTRO Y PAGO (RECEPCIÓN Y ADMIN) -->
             <div id="seccion-renovacion" class="seccion-accion d-none">
-                <h4 style="margin:0 0 10px 0; color:var(--branding-orange);">💳 Registrar Pago / Renovación</h4>
+                <h4 id="tituloSeccionPago" style="margin:0 0 10px 0; color:var(--branding-orange);">💳 Registrar Pago / Renovación</h4>
                 
-                <label for="select-meses">Cantidad de Meses:</label>
+                <!-- Campo Nombre (se vuelve visible si es usuario NUEVO) -->
+                <div id="grupoNuevoSocio" class="d-none">
+                    <label for="txt-nombre-nuevo">Nombre Completo del Nuevo Socio:</label>
+                    <input type="text" id="txt-nombre-nuevo" placeholder="Ej: Juan Pérez">
+                </div>
+
+                <label for="select-tipo-pago">Tipo de Pago:</label>
+                <select id="select-tipo-pago" onchange="calcularMontoRenovacion()">
+                    <option value="RENOVACION_MES">Mensualidad / Inscripción</option>
+                    <option value="DIA">Pasadía / Día</option>
+                </select>
+
+                <label for="select-meses" id="lbl-select-meses">Cantidad de Meses:</label>
                 <select id="select-meses" onchange="calcularMontoRenovacion()">
                     <option value="1">1 Mes</option>
                     <option value="2">2 Meses</option>
@@ -182,7 +194,7 @@
                     Total a cobrar: $<span id="lbl-monto-total">60.000</span>
                 </div>
 
-                <button class="btn-block btn-success" onclick="procesarRenovacion()">Confirmar Pago</button>
+                <button class="btn-block btn-success" onclick="procesarRenovacion()">Confirmar Pago y Registrar</button>
             </div>
 
         </div>
@@ -350,7 +362,7 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO EN PANTALLA PRINCIPAL (RECEPCIÓN)
+        // 🔍 CONSULTAR SOCIO EN PANTALLA PRINCIPAL
         async function procesarAcceso() {
             const documento = input.value.trim();
             if (!documento) return;
@@ -366,20 +378,27 @@
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
+                    document.getElementById('txt-documento-socio').value = documento;
+
                     if (data.encontrado) {
-                        document.getElementById('txt-documento-socio').value = data.socio?.documento || documento;
+                        // USUARIO REGISTRADO
                         document.getElementById('txt-nombre-socio').value = data.socio?.nombre || data.nombre;
                         document.getElementById('txt-id-socio').value = data.socio?.id || '';
+                        document.getElementById('grupoNuevoSocio').classList.add('d-none');
 
                         if (data.resultado === "Autorizado") {
                             mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
                         } else {
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
-                            mostrarSeccionRenovacion(); 
+                            mostrarSeccionRenovacion(false); 
                         }
                         mostrarContenedorEdicionAdmin();
                     } else {
+                        // USUARIO NUEVO (NO REGISTRADO)
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
+                        document.getElementById('grupoNuevoSocio').classList.remove('d-none');
+                        document.getElementById('txt-nombre-nuevo').value = '';
+                        mostrarSeccionRenovacion(true); 
                     }
                 } else {
                     throw new Error(data.message);
@@ -411,9 +430,15 @@
             ocultarSeccionSocio();
         }
 
-        function mostrarSeccionRenovacion() {
+        function mostrarSeccionRenovacion(esNuevo = false) {
             document.getElementById('seccionSocioConsultado').classList.remove('d-none');
             document.getElementById('seccion-renovacion').classList.remove('d-none');
+            
+            const titulo = document.getElementById('tituloSeccionPago');
+            if (titulo) {
+                titulo.textContent = esNuevo ? "📝 Registrar Nuevo Socio y Cobrar" : "💳 Registrar Pago / Renovación";
+            }
+            calcularMontoRenovacion();
         }
 
         function mostrarContenedorEdicionAdmin() {
@@ -430,32 +455,81 @@
             document.getElementById('containerEdicionAdmin').classList.add('d-none');
         }
 
-        // 💳 RENOVACIÓN DE PAGOS (RECEPCIÓN Y ADMIN)
+        // 💵 CÁLCULO DE PAGO (PASADÍA O MESES)
         function calcularMontoRenovacion() {
             const PRECIO_MES = 60000;
-            const meses = parseInt(document.getElementById('select-meses').value) || 1;
-            const total = PRECIO_MES * meses;
+            const PRECIO_DIA = 10000;
+            const tipoPago = document.getElementById('select-tipo-pago').value;
+            const selectMeses = document.getElementById('select-meses');
+            const lblMeses = document.getElementById('lbl-select-meses');
+
+            let total = 0;
+            if (tipoPago === 'DIA') {
+                total = PRECIO_DIA;
+                selectMeses.style.display = 'none';
+                lblMeses.style.display = 'none';
+            } else {
+                selectMeses.style.display = 'block';
+                lblMeses.style.display = 'block';
+                const meses = parseInt(selectMeses.value) || 1;
+                total = PRECIO_MES * meses;
+            }
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
+        // 💳 CONFIRMAR PAGO Y REGISTRAR SOCIO SI ES NUEVO
         async function procesarRenovacion() {
             const documento = document.getElementById('txt-documento-socio').value || input.value.trim();
-            const nombre = document.getElementById('txt-nombre-socio').value;
-            const meses = parseInt(document.getElementById('select-meses').value) || 1;
+            const esNuevo = !document.getElementById('grupoNuevoSocio').classList.contains('d-none');
+            
+            const nombre = esNuevo 
+                ? document.getElementById('txt-nombre-nuevo').value.trim() 
+                : document.getElementById('txt-nombre-socio').value.trim();
+
+            if (esNuevo && !nombre) {
+                mostrarToast('error', 'Por favor ingrese el nombre del nuevo socio.');
+                document.getElementById('txt-nombre-nuevo').focus();
+                return;
+            }
+
+            const tipoPago = document.getElementById('select-tipo-pago').value;
+            const meses = tipoPago === 'DIA' ? 0 : (parseInt(document.getElementById('select-meses').value) || 1);
             const metodoPago = document.getElementById('select-metodo').value;
+            
             const PRECIO_MES = 60000;
-            const montoTotal = PRECIO_MES * meses;
+            const PRECIO_DIA = 10000;
+            const montoTotal = tipoPago === 'DIA' ? PRECIO_DIA : (PRECIO_MES * meses);
+            
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
 
             try {
-                const res = await fetch(`${URL_API}?action=registrar_pago`, {
+                if (esNuevo) {
+                    const resCrear = await fetch(URL_API, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'guardar_socio',
+                            documento: documento,
+                            nombre: nombre,
+                            fecha_pago: new Date().toISOString().split('T')[0],
+                            cliente: clienteActual
+                        })
+                    });
+                    const dataCrear = await resCrear.json();
+                    if (dataCrear.status !== 'success') {
+                        mostrarToast('error', 'Error al registrar al socio nuevo.');
+                        return;
+                    }
+                }
+
+                const resPago = await fetch(`${URL_API}?action=registrar_pago`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'registrar_pago',
                         documento: documento,
                         nombre: nombre,
-                        tipo_ingreso: 'RENOVACION_MES',
+                        tipo_ingreso: tipoPago,
                         meses: meses,
                         monto: montoTotal,
                         metodo_pago: metodoPago,
@@ -464,12 +538,12 @@
                     })
                 });
 
-                const data = await res.json();
-                if (data.status === 'success') {
-                    mostrarToast('success', `Renovación por ${meses} mes(es) exitosa.`);
+                const dataPago = await resPago.json();
+                if (dataPago.status === 'success') {
+                    mostrarToast('success', esNuevo ? 'Socio registrado y pago procesado con éxito.' : 'Renovación exitosa.');
                     resetearPantalla();
                 } else {
-                    mostrarToast('error', data.message || 'Error al procesar renovación.');
+                    mostrarToast('error', dataPago.message || 'Error al procesar el pago.');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -525,7 +599,6 @@
             modalAdmin.classList.add('visible');
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
 
-            // Si ya inició sesión como ADMIN, no vuelve a pedir contraseña
             if (usuarioSesion.rol === 'ADMIN') {
                 document.getElementById('seccionLogin').style.display = 'none';
                 document.getElementById('camposFormulario').style.display = 'block';
@@ -650,71 +723,57 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-       // 💾 GUARDAR / CREAR / EDITAR SOCIO (UPSERT)
-async function guardarRegistro(event) {
-    if (event) event.preventDefault();
+        // 💾 GUARDAR / CREAR / EDITAR SOCIO (UPSERT) DESDE EL MODAL
+        async function guardarRegistro(event) {
+            if (event) event.preventDefault();
 
-    const elDoc = document.getElementById('regDocumento');
-    const elNom = document.getElementById('regNombre');
-    const elFec = document.getElementById('regFecha');
+            const elDoc = document.getElementById('regDocumento');
+            const elNom = document.getElementById('regNombre');
+            const elFec = document.getElementById('regFecha');
 
-    const documento = elDoc ? elDoc.value.trim() : '';
-    const nombre = elNom ? elNom.value.trim() : '';
-    const fechaPago = elFec ? elFec.value : '';
+            const documento = elDoc ? elDoc.value.trim() : '';
+            const nombre = elNom ? elNom.value.trim() : '';
+            const fechaPago = elFec ? elFec.value : '';
 
-    if (!documento) {
-        mostrarToast('error', 'Por favor ingrese el documento');
-        if (elDoc) elDoc.focus();
-        return;
-    }
+            if (!documento) {
+                mostrarToast('error', 'Por favor ingrese el documento');
+                if (elDoc) elDoc.focus();
+                return;
+            }
 
-    if (!nombre) {
-        mostrarToast('error', 'Por favor ingrese el nombre del socio');
-        if (elNom) elNom.focus();
-        return;
-    }
+            if (!nombre) {
+                mostrarToast('error', 'Por favor ingrese el nombre del socio');
+                if (elNom) elNom.focus();
+                return;
+            }
 
-    const payload = {
-        action: 'guardar_socio',
-        documento: documento,
-        nombre: nombre,
-        fecha_pago: fechaPago,
-        cliente: clienteActual
-    };
+            const payload = {
+                action: 'guardar_socio',
+                documento: documento,
+                nombre: nombre,
+                fecha_pago: fechaPago,
+                cliente: clienteActual
+            };
 
-    console.log("Enviando socio a la API:", payload);
+            try {
+                const respuesta = await fetch(URL_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await respuesta.json();
 
-    try {
-        const respuesta = await fetch(URL_API, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const textResponse = await respuesta.text();
-        console.log("Respuesta raw del servidor:", textResponse);
-
-        let data;
-        try {
-            data = JSON.parse(textResponse);
-        } catch (e) {
-            throw new Error("El servidor no devolvió un JSON válido: " + textResponse);
+                if (data.status === "success") {
+                    mostrarToast('success', data.message || 'Socio guardado correctamente');
+                    cerrarAdmin();
+                } else {
+                    mostrarToast('error', data.message || 'Error al guardar socio');
+                }
+            } catch (error) {
+                console.error(error);
+                mostrarToast('error', 'Error de conexión con el servidor.');
+            }
         }
-
-        if (data.status === "success") {
-            mostrarToast('success', data.message || 'Socio guardado correctamente');
-            cerrarAdmin();
-        } else {
-            mostrarToast('error', data.message || 'Error al guardar socio en la base de datos');
-        }
-    } catch (error) {
-        console.error("Error al guardar registro:", error);
-        mostrarToast('error', 'Error técnico: ' + error.message);
-    }
-}
 
         // 📊 REPORTES DE CAJA
         function abrirReportes() {
