@@ -76,7 +76,7 @@
             background: #1c1c1e; padding: 30px; border-radius: 12px;
             width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto;
         }
-        .modal-contenido.ancho-especial { max-width: 850px; }
+        .modal-contenido.ancho-especial { max-width: 880px; }
         .modal-contenido h2 { font-family: 'Bebas Neue', cursive; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
         
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -237,22 +237,22 @@
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES CON NOMBRES MEJORADOS -->
+    <!-- MODAL DE REPORTES CON BOTÓN DE ACTUALIZAR -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
             <h2>📊 Reporte de Caja y Accesos</h2>
             
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
-                <div style="flex:1; min-width:130px;">
+                <div style="flex:1; min-width:120px;">
                     <label style="font-size:0.8rem; color:#aaa;">Desde:</label>
                     <input type="date" id="rep-fecha-inicio" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
                 </div>
-                <div style="flex:1; min-width:130px;">
+                <div style="flex:1; min-width:120px;">
                     <label style="font-size:0.8rem; color:#aaa;">Hasta:</label>
                     <input type="date" id="rep-fecha-fin" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
                 </div>
-                <div style="flex:1; min-width:130px;">
+                <div style="flex:1.2; min-width:160px;">
                     <label style="font-size:0.8rem; color:#aaa;">Vista de Reporte:</label>
                     <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
                         <option value="FINANCIERO" selected>💵 Caja y Movimientos Financieros</option>
@@ -263,8 +263,9 @@
                         <option value="TODOS">📋 Historial Completo</option>
                     </select>
                 </div>
-                <div style="flex:1; min-width:130px; display:flex; align-items:flex-end;">
+                <div style="flex:1; min-width:180px; display:flex; align-items:flex-end; gap:5px;">
                     <button class="btn-block" style="margin:0; padding:9px;" onclick="consultarReportes()">🔍 Filtrar</button>
+                    <button class="btn-block btn-success" style="margin:0; padding:9px; width:auto;" onclick="consultarReportes()" title="Actualizar Datos">🔄</button>
                 </div>
             </div>
 
@@ -463,7 +464,7 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR PAGO RECEPCIÓN
+        // 💳 REGISTRAR PAGO DESDE RECEPCIÓN (MONTO SANITIZADO NUMÉRICO)
         async function procesarRenovacion(event) {
             const btn = document.getElementById('btnProcesarPago');
             if (btn) btn.disabled = true;
@@ -494,7 +495,7 @@
             
             const PRECIO_MES = 60000;
             const PRECIO_DIA = 10000;
-            const montoTotal = tipoPago === 'DIA' ? PRECIO_DIA : (PRECIO_MES * meses);
+            const montoCalculado = tipoPago === 'DIA' ? PRECIO_DIA : (PRECIO_MES * meses);
             
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
 
@@ -511,7 +512,7 @@
                             fecha_pago: new Date().toISOString().split('T')[0],
                             cliente: clienteActual,
                             usuario_registro: usuarioSesion.username,
-                            registrar_caja: false // Se registra en la llamada posterior
+                            registrar_caja: false
                         })
                     });
                     const dataCrear = await resCrear.json();
@@ -531,7 +532,7 @@
                         nombre: nombre,
                         tipo_ingreso: tipoPago,
                         meses: meses,
-                        monto: montoTotal,
+                        monto: montoCalculado,
                         metodo_pago: metodoPago,
                         usuario_registro: usuarioSesion.username,
                         cliente: clienteActual
@@ -553,7 +554,7 @@
             }
         }
 
-        // ✏️ EDICIÓN (ADMIN)
+        // ✏️ EDICIÓN
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -729,7 +730,7 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // GUARDAR DESDE MODAL ADMIN (REGISTRA COBRO EN CAJA AUTOMÁTICAMENTE)
+        // GUARDAR REGISTRO DESDE ADMIN CON VALOR MONETARIO NUMÉRICO
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
@@ -770,7 +771,7 @@
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
-                    mostrarToast('success', 'Socio inscrito y pago de $60.000 registrado en caja.');
+                    mostrarToast('success', 'Socio inscrito y registrado en caja.');
                     cerrarAdmin();
                     resetearPantalla();
                 } else {
@@ -801,7 +802,7 @@
             const tipo = document.getElementById('rep-tipo').value;
 
             try {
-                const res = await fetch(`${URL_API}?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}`);
+                const res = await fetch(`${URL_API}?action=obtener_reportes&fecha_inicio=${fInicio}&fecha_fin=${fFin}&tipo=${tipo}&_=${new Date().getTime()}`);
                 const data = await res.json();
 
                 if (data.status === 'success') {
