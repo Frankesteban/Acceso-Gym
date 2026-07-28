@@ -207,6 +207,27 @@
 
             <form id="formRegistro" onsubmit="guardarRegistro(event)">
                 <div id="camposFormulario" style="display: none;">
+                    
+                    <!-- ⚙️ SECCIÓN DINÁMICA DE TARIFAS -->
+                    <div style="background: rgba(255, 140, 0, 0.1); border: 1px solid var(--branding-orange); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 10px 0; color: var(--branding-orange); font-size: 0.95rem;">⚙️ Configurar Tarifas del Gimnasio</h4>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label for="cfgPrecioMes" style="font-size: 0.75rem;">Valor Mes ($):</label>
+                                <input type="number" id="cfgPrecioMes" value="60000" style="padding: 6px; font-size: 0.9rem;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="cfgPrecioDia" style="font-size: 0.75rem;">Valor Día ($):</label>
+                                <input type="number" id="cfgPrecioDia" value="10000" style="padding: 6px; font-size: 0.9rem;">
+                            </div>
+                        </div>
+                        <button type="button" class="btn-nav" style="width: 100%; margin-top: 8px; font-size: 0.8rem;" onclick="guardarTarifas()">💾 Actualizar Tarifas</button>
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+
+                    <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 0.95rem;">👤 Crear / Registrar Socio</h4>
+
                     <div class="form-group">
                         <label id="lblDocumento" for="regDocumento">Documento</label>
                         <input type="text" id="regDocumento" required autocomplete="off" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
@@ -220,14 +241,6 @@
                         <input type="text" id="regTelefono" placeholder="Ej: 3001234567" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                     <div class="form-group">
-                        <label id="lblCategoria" for="regCategoria">Tipo de Plan</label>
-                        <select id="regCategoria">
-                            <option value="Mes" selected>Mensualidad ($60.000)</option>
-                            <option value="Semestral">Semestral ($360.000)</option>
-                            <option value="Anual">Anual ($720.000)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label id="lblFecha" for="regFecha">Fecha de Inicio / Pago</label>
                         <input type="date" id="regFecha" required>
                     </div>
@@ -237,7 +250,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES CON BOTÓN DE EXCEL -->
+    <!-- MODAL DE REPORTES -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -307,7 +320,6 @@
                 modalTitulo: "Panel Administrativo - Vida Fit",
                 lblDocumento: "Documento de Identidad (CC)",
                 lblNombre: "Nombre Completo del Socio",
-                lblCategoria: "Tipo de Plan Asignado",
                 lblFecha: "Fecha de Pago / Inscripción",
                 btnSubmit: "Guardar / Registrar Socio"
             }
@@ -322,7 +334,6 @@
         document.getElementById("modalTitulo").textContent = ctx.modalTitulo;
         document.getElementById("lblDocumento").textContent = ctx.lblDocumento;
         document.getElementById("lblNombre").textContent = ctx.lblNombre;
-        document.getElementById("lblCategoria").textContent = ctx.lblCategoria;
         document.getElementById("lblFecha").textContent = ctx.lblFecha;
         document.getElementById("btnSubmitAdmin").textContent = ctx.btnSubmit;
 
@@ -345,7 +356,29 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO
+        // ⚙️ OBTENER TARIFAS VIGENTES
+        function obtenerTarifas() {
+            return JSON.parse(localStorage.getItem('tarifas_vidafit')) || {
+                precioMes: 60000,
+                precioDia: 10000
+            };
+        }
+
+        // 💾 GUARDAR NUEVAS TARIFAS (SOLO ADMIN)
+        function guardarTarifas() {
+            const mes = parseFloat(document.getElementById('cfgPrecioMes').value) || 60000;
+            const dia = parseFloat(document.getElementById('cfgPrecioDia').value) || 10000;
+
+            localStorage.setItem('tarifas_vidafit', JSON.stringify({
+                precioMes: mes,
+                precioDia: dia
+            }));
+
+            mostrarToast('success', 'Tarifas actualizadas correctamente.');
+            calcularMontoRenovacion();
+        }
+
+        // 🔍 CONSULTAR SOCIO (ENVÍA USUARIO AUDITOR DE SESIÓN)
         async function procesarAcceso() {
             const documento = input.value.replace(/[^0-9]/g, '');
             if (!documento) return;
@@ -447,27 +480,26 @@
         }
 
         function calcularMontoRenovacion() {
-            const PRECIO_MES = 60000;
-            const PRECIO_DIA = 10000;
+            const tarifas = obtenerTarifas();
             const tipoPago = document.getElementById('select-tipo-pago').value;
             const selectMeses = document.getElementById('select-meses');
             const lblMeses = document.getElementById('lbl-select-meses');
 
             let total = 0;
             if (tipoPago === 'DIA') {
-                total = PRECIO_DIA;
+                total = tarifas.precioDia;
                 selectMeses.style.display = 'none';
                 lblMeses.style.display = 'none';
             } else {
                 selectMeses.style.display = 'block';
                 lblMeses.style.display = 'block';
                 const meses = parseInt(selectMeses.value) || 1;
-                total = PRECIO_MES * meses;
+                total = tarifas.precioMes * meses;
             }
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR PAGO RECEPCIÓN
+        // 💳 REGISTRAR PAGO
         async function procesarRenovacion(event) {
             const btn = document.getElementById('btnProcesarPago');
             if (btn) btn.disabled = true;
@@ -496,9 +528,8 @@
             const meses = tipoPago === 'DIA' ? 0 : (parseInt(document.getElementById('select-meses').value) || 1);
             const metodoPago = document.getElementById('select-metodo').value;
             
-            const PRECIO_MES = 60000;
-            const PRECIO_DIA = 10000;
-            const montoCalculado = tipoPago === 'DIA' ? PRECIO_DIA : (PRECIO_MES * meses);
+            const tarifas = obtenerTarifas();
+            const montoCalculado = tipoPago === 'DIA' ? tarifas.precioDia : (tarifas.precioMes * meses);
             
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
 
@@ -557,7 +588,7 @@
             }
         }
 
-        // ✏️ EDICIÓN
+        // ✏️ EDICIÓN DE SOCIO POR ADMIN
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -608,6 +639,11 @@
             if (usuarioSesion.rol === 'ADMIN') {
                 document.getElementById('seccionLogin').style.display = 'none';
                 document.getElementById('camposFormulario').style.display = 'block';
+
+                const tarifas = obtenerTarifas();
+                document.getElementById('cfgPrecioMes').value = tarifas.precioMes;
+                document.getElementById('cfgPrecioDia').value = tarifas.precioDia;
+
                 if (!document.getElementById('regFecha').value) {
                     document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
                 }
@@ -658,6 +694,11 @@
                     if (data.user.rol === 'ADMIN') {
                         document.getElementById('seccionLogin').style.display = 'none';
                         document.getElementById('camposFormulario').style.display = 'block';
+
+                        const tarifas = obtenerTarifas();
+                        document.getElementById('cfgPrecioMes').value = tarifas.precioMes;
+                        document.getElementById('cfgPrecioDia').value = tarifas.precioDia;
+
                         document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
                         claveInput.value = ""; 
                         mostrarToast('success', `¡Bienvenido ${data.user.nombre}!`);
@@ -733,7 +774,7 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // GUARDAR REGISTRO DESDE ADMIN
+        // GUARDAR REGISTRO SOCIO DESDE ADMIN
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
@@ -753,13 +794,15 @@
                 return;
             }
 
+            const tarifas = obtenerTarifas();
+
             const payload = {
                 action: 'guardar_socio',
                 documento: documento,
                 nombre: nombre,
                 telefono: telefono,
                 fecha_pago: fechaPago,
-                monto: 60000,
+                monto: tarifas.precioMes,
                 registrar_caja: true,
                 usuario_registro: usuarioSesion.username,
                 cliente: clienteActual
