@@ -283,31 +283,49 @@
     </div>
 
     <!-- MODAL DE REPORTES -->
-    <div id="modalReportes" class="modal">
-        <div class="modal-contenido ancho-especial">
-            <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
-            <h2>📊 Reporte de Caja y Accesos</h2>
-            
-            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; align-items:flex-end;">
-                <div style="flex:1; min-width:120px;">
-                    <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Desde:</label>
-                    <input type="date" id="rep-fecha-inicio" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
+    <!-- 🛠️ FILTROS Y ACCIONES EN 2 FILAS (SIN SCROLL HORIZONTAL) -->
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:15px;">
+                
+                <!-- Fila 1: Selectores y Fechas -->
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:130px;">
+                        <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Desde:</label>
+                        <input type="date" id="rep-fecha-inicio" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
+                    </div>
+                    <div style="flex:1; min-width:130px;">
+                        <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Hasta:</label>
+                        <input type="date" id="rep-fecha-fin" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
+                    </div>
+                    <div style="flex:1.5; min-width:180px;">
+                        <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Vista de Reporte:</label>
+                        <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
+                            <option value="FINANCIERO" selected>💵 Caja y Movimientos Financieros</option>
+                            <option value="ACCESOS">🎟️ Control de Asistencia y Accesos</option>
+                            <option value="INSCRIPCION">📝 Nuevas Inscripciones</option>
+                            <option value="RENOVACION_MES">🔄 Renovaciones de Mes</option>
+                            <option value="DIA">☀️ Pasadías / Días</option>
+                            <option value="TODOS">📋 Historial Completo</option>
+                        </select>
+                    </div>
                 </div>
-                <div style="flex:1; min-width:120px;">
-                    <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Hasta:</label>
-                    <input type="date" id="rep-fecha-fin" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
+
+                <!-- Fila 2: Botones de Acción sobre la tabla -->
+                <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+                    <button class="btn-accion-rep btn-filtrar" style="flex:1; min-width:120px;" onclick="consultarReportes()">
+                        🔍 Filtrar
+                    </button>
+                    <button class="btn-accion-rep btn-refrescar" onclick="consultarReportes()" title="Actualizar Datos">
+                        🔄
+                    </button>
+                    <button class="btn-accion-rep btn-excel-mov" onclick="exportarExcel()" title="Descargar Excel de Transacciones">
+                        📥 Excel Movimientos
+                    </button>
+                    <button class="btn-accion-rep btn-excel-socios" onclick="exportarReporteSocios()" title="Descargar Listado Completo de Socios">
+                        👥 Exportar Socios
+                    </button>
                 </div>
-                <div style="flex:1.2; min-width:160px;">
-                    <label style="font-size:0.8rem; color:#aaa; display:block; margin-bottom:5px;">Vista de Reporte:</label>
-                    <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px; box-sizing:border-box; height:40px;">
-                        <option value="FINANCIERO" selected>💵 Caja y Movimientos Financieros</option>
-                        <option value="ACCESOS">🎟️ Control de Asistencia y Accesos</option>
-                        <option value="INSCRIPCION">📝 Nuevas Inscripciones</option>
-                        <option value="RENOVACION_MES">🔄 Renovaciones de Mes</option>
-                        <option value="DIA">☀️ Pasadías / Días</option>
-                        <option value="TODOS">📋 Historial Completo</option>
-                    </select>
-                </div>
+
+            </div>
                 
                 <!-- 🛠️ BOTONES CON ALINEACIÓN Y TAMAÑO UNIFICADO -->
                 <div style="flex:1; min-width:320px; display:flex; align-items:center; gap:8px;">
