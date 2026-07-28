@@ -208,32 +208,34 @@
             <form id="formRegistro" onsubmit="guardarRegistro(event)">
                 <div id="camposFormulario" style="display: none;">
                     
-                    <!-- ⚙️ SECCIÓN DINÁMICA DE TARIFAS -->
-                    <div style="background: rgba(255, 140, 0, 0.1); border: 1px solid var(--branding-orange); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                        <h4 style="margin: 0 0 10px 0; color: var(--branding-orange); font-size: 0.95rem;">⚙️ Configurar Tarifas del Gimnasio</h4>
-                        <div style="display: flex; gap: 10px;">
-                            <div style="flex: 1;">
-                                <label for="cfgPrecioMes" style="font-size: 0.75rem;">Valor Mes ($):</label>
-                                <input type="number" id="cfgPrecioMes" value="60000" style="padding: 6px; font-size: 0.9rem;">
+                    <!-- ⚙️ SECCIÓN DESPLEGABLE DE TARIFAS (OCULTA POR DEFECTO) -->
+                    <details style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 140, 0, 0.4); border-radius: 8px; margin-bottom: 15px; padding: 5px 10px;">
+                        <summary style="cursor: pointer; font-size: 0.85rem; font-weight: bold; color: var(--branding-orange); padding: 8px 0; outline: none; user-select: none;">
+                            ⚙️ Configurar Tarifas del Gimnasio (Desplegar)
+                        </summary>
+                        <div style="padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 5px;">
+                            <div style="display: flex; gap: 10px;">
+                                <div style="flex: 1;">
+                                    <label for="cfgPrecioMes" style="font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 4px;">Valor Mes ($):</label>
+                                    <input type="number" id="cfgPrecioMes" value="60000" style="width: 100%; padding: 6px; font-size: 0.9rem; background: #2c2c2e; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label for="cfgPrecioDia" style="font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 4px;">Valor Día ($):</label>
+                                    <input type="number" id="cfgPrecioDia" value="10000" style="width: 100%; padding: 6px; font-size: 0.9rem; background: #2c2c2e; border: 1px solid #444; color: #fff; border-radius: 5px; box-sizing: border-box;">
+                                </div>
                             </div>
-                            <div style="flex: 1;">
-                                <label for="cfgPrecioDia" style="font-size: 0.75rem;">Valor Día ($):</label>
-                                <input type="number" id="cfgPrecioDia" value="10000" style="padding: 6px; font-size: 0.9rem;">
-                            </div>
+                            <button type="button" class="btn-nav" style="width: 100%; margin-top: 10px; font-size: 0.8rem; background: var(--branding-orange); border: none;" onclick="guardarTarifas()">💾 Actualizar y Guardar Tarifas</button>
                         </div>
-                        <button type="button" class="btn-nav" style="width: 100%; margin-top: 8px; font-size: 0.8rem;" onclick="guardarTarifas()">💾 Actualizar Tarifas</button>
-                    </div>
-
-                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+                    </details>
 
                     <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 0.95rem;">👤 Crear / Registrar Socio</h4>
 
                     <div class="form-group">
-                        <label id="lblDocumento" for="regDocumento">Documento</label>
+                        <label id="lblDocumento" for="regDocumento">Documento de Identidad (CC)</label>
                         <input type="text" id="regDocumento" required autocomplete="off" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                     <div class="form-group">
-                        <label id="lblNombre" for="regNombre">Nombre Completo</label>
+                        <label id="lblNombre" for="regNombre">Nombre Completo del Socio</label>
                         <input type="text" id="regNombre" placeholder="Nombre del socio">
                     </div>
                     <div class="form-group">
@@ -241,7 +243,7 @@
                         <input type="text" id="regTelefono" placeholder="Ej: 3001234567" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                     <div class="form-group">
-                        <label id="lblFecha" for="regFecha">Fecha de Inicio / Pago</label>
+                        <label id="lblFecha" for="regFecha">Fecha de Pago / Inscripción</label>
                         <input type="date" id="regFecha" required>
                     </div>
                     <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar / Registrar Socio</button>
@@ -833,7 +835,7 @@
             modalReportes.classList.add('visible');
             
             const ahora = new Date();
-            const year = ahora.getFullYear();
+            const year = me = ahora.getFullYear();
             const month = String(ahora.getMonth() + 1).padStart(2, '0');
             const day = String(ahora.getDate()).padStart(2, '0');
             const hoyLocal = `${year}-${month}-${day}`;
