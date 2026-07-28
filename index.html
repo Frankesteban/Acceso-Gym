@@ -123,7 +123,6 @@
         <h1 id="mainTitulo">Cargando...</h1>
         <p class="subtitulo" id="mainSubtitulo">Por favor espere...</p>
         
-        <!-- 🛡️ Filtro estricto: Solo números -->
         <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus 
                inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
         
@@ -133,7 +132,7 @@
 
         <div id="seccionSocioConsultado" class="d-none">
             
-            <!-- 🔐 BLOQUE DE EDICIÓN: Oculto para recepción; visible solo si hay sesión ADMIN activa -->
+            <!-- BLOQUE DE EDICIÓN: Solo para Admin -->
             <div id="containerEdicionAdmin" class="seccion-accion d-none">
                 <input type="hidden" id="txt-id-socio">
                 <input type="hidden" id="txt-documento-socio">
@@ -240,7 +239,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES -->
+    <!-- MODAL DE REPORTES CON VISTA DE REPORTE SEPARADA -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -256,11 +255,14 @@
                     <input type="date" id="rep-fecha-fin" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
                 </div>
                 <div style="flex:1; min-width:130px;">
-                    <label style="font-size:0.8rem; color:#aaa;">Tipo:</label>
+                    <label style="font-size:0.8rem; color:#aaa;">Vista de Reporte:</label>
                     <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
-                        <option value="TODOS">Todos</option>
-                        <option value="DIA">Días / Pasadías</option>
-                        <option value="RENOVACION_MES">Renovaciones</option>
+                        <option value="FINANCIERO" selected>💰 Solo Dinero (Caja)</option>
+                        <option value="ACCESOS">🎟️ Solo Accesos (Asistencias)</option>
+                        <option value="INSCRIPCION">📝 Nuevos Inscritos</option>
+                        <option value="RENOVACION_MES">🔄 Renovaciones</option>
+                        <option value="DIA">☀️ Pasadías / Días</option>
+                        <option value="TODOS">📋 Todos los Registros</option>
                     </select>
                 </div>
                 <div style="flex:1; min-width:130px; display:flex; align-items:flex-end;">
@@ -375,7 +377,6 @@
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
                             mostrarSeccionRenovacion(false);
                         }
-                        // 🔐 Solo se muestra si el usuario logueado es ADMIN
                         mostrarContenedorEdicionAdmin();
                     } else {
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
@@ -427,7 +428,6 @@
             calcularMontoRenovacion();
         }
 
-        // 🔐 SEGURIDAD: Solo despliega si hay sesión de ADMIN
         function mostrarContenedorEdicionAdmin() {
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
             if (usuarioSesion.rol === 'ADMIN') {
@@ -465,7 +465,7 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR SOCIO + PAGO (CON BLINDAJE CONTRA DOBLE SUBMIT)
+        // 💳 REGISTRAR PAGO (DISPARA INSCRIPCION SI ES SOCIO NUEVO)
         async function procesarRenovacion(event) {
             const btn = document.getElementById('btnProcesarPago');
             if (btn) btn.disabled = true;
@@ -488,7 +488,9 @@
                 return;
             }
 
-            const tipoPago = document.getElementById('select-tipo-pago').value;
+            const selectTipo = document.getElementById('select-tipo-pago').value;
+            const tipoPago = esNuevo && selectTipo === 'RENOVACION_MES' ? 'INSCRIPCION' : selectTipo;
+
             const meses = tipoPago === 'DIA' ? 0 : (parseInt(document.getElementById('select-meses').value) || 1);
             const metodoPago = document.getElementById('select-metodo').value;
             
@@ -538,7 +540,7 @@
 
                 const dataPago = await resPago.json();
                 if (dataPago.status === 'success') {
-                    mostrarToast('success', esNuevo ? 'Socio registrado y pago procesado.' : 'Renovación exitosa.');
+                    mostrarToast('success', esNuevo ? 'Socio inscrito y pago registrado.' : 'Renovación exitosa.');
                     resetearPantalla();
                 } else {
                     mostrarToast('error', dataPago.message || 'Error al procesar el pago.');
@@ -551,7 +553,7 @@
             }
         }
 
-        // ✏️ EDICIÓN RÁPIDA DE TELÉFONO / NOMBRE (ADMIN)
+        // ✏️ EDICIÓN DE DATOS (ADMIN)
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -727,7 +729,7 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // GUARDAR DESDE MODAL
+        // GUARDAR DESDE MODAL ADMIN
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
@@ -801,21 +803,38 @@
                 if (data.status === 'success') {
                     const t = data.totales;
                     document.getElementById('resumen-totales').innerHTML = `
-                        <div>Total: <span style="color:var(--bg-verde)">$${t.total_recaudado.toLocaleString('es-CO')}</span></div>
+                        <div>Total Recaudado: <span style="color:var(--bg-verde)">$${t.total_recaudado.toLocaleString('es-CO')}</span></div>
                         <div>Efectivo: <span>$${t.efectivo.toLocaleString('es-CO')}</span></div>
                         <div>Digital: <span>$${t.nequi_daviplata.toLocaleString('es-CO')}</span></div>
+                        <div>Accesos Registrados: <span style="color:var(--branding-orange)">${t.total_accesos}</span></div>
                     `;
 
                     const tbody = document.getElementById('tbody-reportes');
                     tbody.innerHTML = '';
 
                     data.logs.forEach(log => {
+                        let badgeColor = '#2ec4b6';
+                        let labelTipo = log.tipo_ingreso;
+
+                        if (log.tipo_ingreso === 'INSCRIPCION') {
+                            badgeColor = '#ff8c00';
+                            labelTipo = 'NUEVA INSCRIPCIÓN';
+                        } else if (log.tipo_ingreso === 'DIA') {
+                            badgeColor = '#e2b93b';
+                            labelTipo = 'PASADÍA / DÍA';
+                        } else if (log.tipo_ingreso === 'ACCESO') {
+                            badgeColor = '#8d99ae';
+                            labelTipo = 'ACCESO INGRESO';
+                        } else if (log.tipo_ingreso === 'RENOVACION_MES') {
+                            labelTipo = 'RENOVACIÓN MES';
+                        }
+
                         tbody.innerHTML += `
                             <tr>
                                 <td>${log.fecha_hora}</td>
                                 <td>${log.nombre}</td>
                                 <td>${log.documento}</td>
-                                <td><strong style="color:${log.tipo_ingreso === 'DIA' ? 'var(--branding-orange)' : 'var(--bg-verde)'}">${log.tipo_ingreso}</strong></td>
+                                <td><strong style="color:${badgeColor}">${labelTipo}</strong></td>
                                 <td>$${parseFloat(log.monto).toLocaleString('es-CO')}</td>
                                 <td>${log.metodo_pago}</td>
                                 <td>${log.usuario_registro}</td>
