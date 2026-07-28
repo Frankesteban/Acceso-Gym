@@ -124,6 +124,7 @@
     <div class="top-nav">
         <button class="btn-nav d-none" id="btnReportesNav" onclick="abrirReportes()">📊 Reportes y Cierre</button>
         <button class="btn-nav" id="btnAdmin" onclick="abrirAdmin()">⚙️ Gestión Socios</button>
+        <button class="btn-nav d-none" id="btnLogout" onclick="cerrarSesionAdmin()" style="background:#e63946;">🚪 Cerrar Sesión</button>
     </div>
 
     <!-- 1. MÓDULO PRINCIPAL DE CONSULTA (LO ÚNICO VISIBLE AL INICIO) -->
@@ -335,7 +336,7 @@
         const modalAdmin = document.getElementById('modalAdmin');
         const modalReportes = document.getElementById('modalReportes');
 
-        // Mantenimiento de Autofocus en el input principal
+        // Mantenimiento de Autofocus
         document.addEventListener('click', (e) => {
             if (!modalAdmin.classList.contains('visible') && !modalReportes.classList.contains('visible') && e.target.id !== 'btnAdmin') {
                 input.focus();
@@ -349,7 +350,7 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO / ACCESO
+        // 🔍 CONSULTAR SOCIO EN PANTALLA PRINCIPAL (RECEPCIÓN)
         async function procesarAcceso() {
             const documento = input.value.trim();
             if (!documento) return;
@@ -361,12 +362,11 @@
             ocultarSeccionSocio();
 
             try {
-                const respuesta = await fetch(`${URL_API}?documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+                const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=acceso&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
                     if (data.encontrado) {
-                        // Cargar variables en campos ocultos para posible edición o cobro
                         document.getElementById('txt-documento-socio').value = data.socio?.documento || documento;
                         document.getElementById('txt-nombre-socio').value = data.socio?.nombre || data.nombre;
                         document.getElementById('txt-id-socio').value = data.socio?.id || '';
@@ -375,9 +375,8 @@
                             mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
                         } else {
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
-                            mostrarSeccionRenovacion(); // Despliega la opción de cobrar
+                            mostrarSeccionRenovacion(); 
                         }
-                        
                         mostrarContenedorEdicionAdmin();
                     } else {
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
@@ -431,7 +430,7 @@
             document.getElementById('containerEdicionAdmin').classList.add('d-none');
         }
 
-        // 💵 CÁLCULO Y PROCESAMIENTO DE RENOVACIÓN MULTI-MES
+        // 💳 RENOVACIÓN DE PAGOS (RECEPCIÓN Y ADMIN)
         function calcularMontoRenovacion() {
             const PRECIO_MES = 60000;
             const meses = parseInt(document.getElementById('select-meses').value) || 1;
@@ -453,13 +452,15 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        action: 'registrar_pago',
                         documento: documento,
                         nombre: nombre,
                         tipo_ingreso: 'RENOVACION_MES',
                         meses: meses,
                         monto: montoTotal,
                         metodo_pago: metodoPago,
-                        usuario_registro: usuarioSesion.username
+                        usuario_registro: usuarioSesion.username,
+                        cliente: clienteActual
                     })
                 });
 
@@ -518,38 +519,179 @@
                 mostrarToast('error', 'No se pudo guardar la información.');
             }
         }
-// Ámbito aislado para evitar conflictos con variables anteriores
-{
-    const elInputDoc = document.getElementById('txt-documento-socio');
 
-    if (elInputDoc) {
-        elInputDoc.addEventListener('change', async () => {
-            const documento = elInputDoc.value.trim();
-            if (!documento) return;
+        // ⚙️ CONTROL DE SESIÓN Y MODAL ADMINISTRATIVO
+        function abrirAdmin() {
+            modalAdmin.classList.add('visible');
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
+
+            // Si ya inició sesión como ADMIN, no vuelve a pedir contraseña
+            if (usuarioSesion.rol === 'ADMIN') {
+                document.getElementById('seccionLogin').style.display = 'none';
+                document.getElementById('camposFormulario').style.display = 'block';
+                if (!document.getElementById('regFecha').value) {
+                    document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+                }
+                setTimeout(() => document.getElementById('regDocumento').focus(), 100);
+            } else {
+                document.getElementById('seccionLogin').style.display = 'block';
+                document.getElementById('camposFormulario').style.display = 'none';
+                setTimeout(() => document.getElementById('adminClave').focus(), 100);
+            }
+        }
+
+        function cerrarAdmin() {
+            modalAdmin.classList.remove('visible');
+            document.getElementById('formRegistro').reset();
+            input.focus();
+        }
+
+        async function verificarClaveAdmin() {
+            const claveInput = document.getElementById('adminClave');
+            const password = claveInput.value.trim();
+            if (!password) return;
 
             try {
-                const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=admin&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+                const respuesta = await fetch(URL_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'login',
+                        username: 'admin',
+                        password: password,
+                        documento: 'ADMIN',
+                        cliente: clienteActual
+                    })
+                });
+                
                 const data = await respuesta.json();
 
-                if (data.status === "success" && data.encontrado && data.socio) {
-                    const elInputNombre = document.getElementById('txt-nombre-socio');
-                    if (elInputNombre) elInputNombre.value = data.socio.nombre || '';
+                if (data.status === "success") {
+                    localStorage.setItem('usuario_vidafit', JSON.stringify({ 
+                        id: data.user.id,
+                        username: data.user.username, 
+                        nombre: data.user.nombre,
+                        rol: data.user.rol 
+                    }));
+                    
+                    evaluarVistaSesion();
 
-                    const elInputFecha = document.getElementById('txt-fecha-pago');
-                    if (elInputFecha && data.socio.fecha_pago) {
-                        elInputFecha.value = data.socio.fecha_pago;
+                    if (data.user.rol === 'ADMIN') {
+                        document.getElementById('seccionLogin').style.display = 'none';
+                        document.getElementById('camposFormulario').style.display = 'block';
+                        document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
+                        claveInput.value = ""; 
+                        mostrarToast('success', `¡Bienvenido ${data.user.nombre}!`);
+                        setTimeout(() => document.getElementById('regDocumento').focus(), 100);
+                    } else {
+                        mostrarToast('error', 'El usuario no tiene rol de Administrador.');
                     }
                 } else {
-                    const elInputNombre = document.getElementById('txt-nombre-socio');
-                    if (elInputNombre) elInputNombre.value = '';
+                    mostrarToast('error', data.message || 'Contraseña incorrecta.');
+                    claveInput.value = "";
                 }
             } catch (error) {
-                console.error("Error al consultar socio:", error);
+                console.error(error);
+                mostrarToast('error', 'Error de conexión con el servidor.');
             }
-        });
-    }
-}
-        // 📊 MODAL Y CONSULTA DE REPORTES
+        }
+
+        function cerrarSesionAdmin() {
+            localStorage.removeItem('usuario_vidafit');
+            evaluarVistaSesion();
+            cerrarAdmin();
+            mostrarToast('success', 'Sesión de administración cerrada');
+        }
+
+        function evaluarVistaSesion() {
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit'));
+            const btnReportesNav = document.getElementById('btnReportesNav');
+            const btnLogout = document.getElementById('btnLogout');
+
+            if (usuarioSesion && usuarioSesion.rol === 'ADMIN') {
+                if (btnReportesNav) btnReportesNav.classList.remove('d-none');
+                if (btnLogout) btnLogout.classList.remove('d-none');
+            } else {
+                if (btnReportesNav) btnReportesNav.classList.add('d-none');
+                if (btnLogout) btnLogout.classList.add('d-none');
+            }
+        }
+
+        // 🔍 AUTOCOMPLETADO DENTRO DEL MODAL (EN CAMPO regDocumento)
+        const elRegDoc = document.getElementById('regDocumento');
+        if (elRegDoc) {
+            const consultarParaModal = async () => {
+                const documento = elRegDoc.value.trim();
+                if (!documento) return;
+
+                try {
+                    const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=admin&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+                    const data = await respuesta.json();
+
+                    const elRegNombre = document.getElementById('regNombre');
+                    const elRegFecha = document.getElementById('regFecha');
+
+                    if (data.status === "success" && data.encontrado && data.socio) {
+                        if (elRegNombre) elRegNombre.value = data.socio.nombre || '';
+                        if (elRegFecha && data.socio.fecha_pago) {
+                            elRegFecha.value = data.socio.fecha_pago;
+                        }
+                        mostrarToast('success', 'Socio encontrado. Puede editar sus datos.');
+                    } else {
+                        if (elRegNombre) elRegNombre.value = '';
+                        if (elRegFecha) elRegFecha.value = new Date().toISOString().split('T')[0];
+                    }
+                } catch (error) {
+                    console.error("Error en autocompletado modal:", error);
+                }
+            };
+
+            elRegDoc.addEventListener('change', consultarParaModal);
+            elRegDoc.addEventListener('blur', consultarParaModal);
+        }
+
+        // 💾 GUARDAR / CREAR / EDITAR SOCIO (UPSERT)
+        async function guardarRegistro(event) {
+            event.preventDefault();
+
+            const documento = document.getElementById('regDocumento').value.trim();
+            const nombre = document.getElementById('regNombre').value.trim();
+            const fechaPago = document.getElementById('regFecha').value;
+
+            if (!documento || !nombre) {
+                mostrarToast('error', 'Documento y nombre son obligatorios');
+                return;
+            }
+
+            const payload = {
+                action: 'guardar_socio',
+                documento: documento,
+                nombre: nombre,
+                fecha_pago: fechaPago,
+                cliente: clienteActual
+            };
+
+            try {
+                const respuesta = await fetch(URL_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await respuesta.json();
+
+                if (data.status === "success") {
+                    mostrarToast('success', data.message || 'Socio guardado correctamente');
+                    cerrarAdmin();
+                } else {
+                    mostrarToast('error', data.message || 'Error al guardar socio');
+                }
+            } catch (error) {
+                console.error(error);
+                mostrarToast('error', 'Error de conexión con el servidor.');
+            }
+        }
+
+        // 📊 REPORTES DE CAJA
         function abrirReportes() {
             modalReportes.classList.add('visible');
             const hoy = new Date().toISOString().split('T')[0];
@@ -603,99 +745,6 @@
             }
         }
 
-        // ⚙️ GESTIÓN DE MODAL Y CREDENCIALES ADMIN
-        function abrirAdmin() {
-            modalAdmin.classList.add('visible');
-            document.getElementById('seccionLogin').style.display = 'block';
-            document.getElementById('camposFormulario').style.display = 'none';
-            setTimeout(() => document.getElementById('adminClave').focus(), 100);
-        }
-
-        function cerrarAdmin() {
-            modalAdmin.classList.remove('visible');
-            document.getElementById('formRegistro').reset();
-            input.focus();
-        }
-
-        async function verificarClaveAdmin() {
-    const claveInput = document.getElementById('adminClave');
-    const password = claveInput.value.trim();
-    if (!password) return;
-
-    try {
-        const respuesta = await fetch(`${URL_API}?action=login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                // Credenciales para la consulta del case 'login'
-                username: 'admin',
-                password: password,
-                // Parámetros adicionales para superar la validación previa de la API
-                documento: 'ADMIN',
-                cliente: clienteActual
-            })
-        });
-        
-        const data = await respuesta.json();
-
-        if (data.status === "success") {
-            // Guardar sesión administrativa localmente
-            localStorage.setItem('usuario_vidafit', JSON.stringify({ 
-                id: data.user.id,
-                username: data.user.username, 
-                nombre: data.user.nombre,
-                rol: data.user.rol 
-            }));
-            
-            if (data.user.rol === 'ADMIN') {
-                document.getElementById('seccionLogin').style.display = 'none';
-                document.getElementById('camposFormulario').style.display = 'block';
-                document.getElementById('btnReportesNav')?.classList.remove('d-none');
-                document.getElementById('regFecha').value = new Date().toISOString().split('T')[0];
-                claveInput.value = ""; 
-                
-                mostrarToast('success', `¡Bienvenido ${data.user.nombre}!`);
-            } else {
-                mostrarToast('error', 'El usuario no tiene rol de Administrador.');
-            }
-        } else {
-            mostrarToast('error', data.message || 'Contraseña incorrecta.');
-            claveInput.value = "";
-        }
-    } catch (error) {
-        console.error(error);
-        mostrarToast('error', 'Error de conexión con el servidor.');
-    }
-}
-        async function guardarRegistro(event) {
-            event.preventDefault();
-            const payload = {
-                documento: document.getElementById('regDocumento').value.trim(),
-                nombre: document.getElementById('regNombre').value.trim(),
-                tipo_plan: document.getElementById('regCategoria').value,
-                fecha_pago: document.getElementById('regFecha').value,
-                cliente: clienteActual
-            };
-
-            try {
-                const respuesta = await fetch(URL_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await respuesta.json();
-
-                if (data.status === "success") {
-                    mostrarToast('success', data.message);
-                    cerrarAdmin();
-                } else {
-                    mostrarToast('error', data.message);
-                }
-            } catch (error) {
-                mostrarToast('error', 'Error de conexión.');
-            }
-        }
-
         function mostrarToast(tipo, mensaje) {
             const toast = document.getElementById('toast');
             document.getElementById('toastIcono').textContent = tipo === 'success' ? '✅' : '❌';
@@ -705,13 +754,8 @@
             setTimeout(() => toast.classList.remove('show'), 3500);
         }
 
-        // CONTROL DE SESIÓN AL CARGAR
-        document.addEventListener('DOMContentLoaded', () => {
-            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit'));
-            if (usuarioSesion && usuarioSesion.rol === 'ADMIN') {
-                document.getElementById('btnReportesNav').classList.remove('d-none');
-            }
-        });
+        // EVALUAR ESTADO AL CARGAR PÁGINA
+        document.addEventListener('DOMContentLoaded', evaluarVistaSesion);
     </script>
 </body>
 </html>
