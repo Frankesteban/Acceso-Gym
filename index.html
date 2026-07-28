@@ -344,7 +344,7 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO
+        // 🔍 CONSULTAR SOCIO (AUDITORÍA DE USUARIO EN SESIÓN)
         async function procesarAcceso() {
             const documento = input.value.replace(/[^0-9]/g, '');
             if (!documento) return;
@@ -355,8 +355,10 @@
             aviso.innerHTML = "Consultando...";
             ocultarSeccionSocio();
 
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'recepcion' };
+
             try {
-                const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=acceso&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
+                const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=acceso&documento=${documento}&cliente=${clienteActual}&usuario_registro=${usuarioSesion.username}&_=${new Date().getTime()}`);
                 const data = await respuesta.json();
 
                 document.getElementById('btnLimpiarConsulta').classList.remove('d-none');
