@@ -23,7 +23,6 @@
             position: relative;
         }
         
-        /* 1. VISTA PRINCIPAL (CENTRADA Y LIMPIA) */
         .contenedor {
             text-align: center; width: 90%; max-width: 550px; padding: 35px 25px;
             border-radius: 15px; background: rgba(0, 0, 0, 0.75);
@@ -49,7 +48,6 @@
         .pantalla-aviso { margin-top: 15px; padding: 15px; border-radius: 10px; font-size: 1.5rem; font-weight: bold; display: none; }
         .nombre-usuario { font-size: 1.8rem; margin-top: 5px; display: block; color: #fff; }
 
-        /* SECCIÓN DE ACCIONES CONTEXTUALES (PAGOS Y EDICIÓN) DENTRO DE LA TARJETA */
         .seccion-accion {
             margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.05);
             border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: left;
@@ -60,7 +58,6 @@
             border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 0.95rem; outline: none; margin-bottom: 12px;
         }
 
-        /* BOTONES SUPERIORES (ADMIN Y REPORTES) */
         .top-nav { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
         .btn-nav {
             background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
@@ -69,7 +66,6 @@
         }
         .btn-nav:hover { background: var(--branding-orange); border-color: var(--branding-orange); }
 
-        /* VENTANAS MODALES (ADMINISTRACIÓN Y REPORTES) */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center;
@@ -89,22 +85,18 @@
             width: 100%; padding: 10px; box-sizing: border-box; background: #2c2c2e;
             border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; font-size: 1rem; outline: none;
         }
-        .form-group input:focus, .form-group select:focus { border-color: var(--branding-orange); }
         
         .btn-block { width: 100%; padding: 12px; background: var(--branding-orange); border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
         .btn-block:hover { background: #e07b00; }
         .btn-success { background: #2ec4b6; color: #121214; }
         .btn-success:hover { background: #26a99d; }
         .btn-cerrar { background: transparent; border: none; color: #aaa; cursor: pointer; float: right; font-size: 1.3rem; }
-        .btn-cerrar:hover { color: white; }
 
-        /* TABLA DE REPORTES */
         .tabla-contenedor { width: 100%; overflow-x: auto; margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
         th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         th { color: var(--branding-orange); font-weight: bold; }
 
-        /* NOTIFICACIÓN TOAST */
         .toast-container {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-40px);
             background: #2c2c2e; padding: 15px 25px; border-radius: 8px; font-weight: bold;
@@ -120,51 +112,50 @@
 </head>
 <body>
 
-    <!-- BOTONES DE NAVEGACIÓN SUPERIOR -->
     <div class="top-nav">
         <button class="btn-nav d-none" id="btnReportesNav" onclick="abrirReportes()">📊 Reportes y Cierre</button>
         <button class="btn-nav" id="btnAdmin" onclick="abrirAdmin()">⚙️ Gestión Socios</button>
         <button class="btn-nav d-none" id="btnLogout" onclick="cerrarSesionAdmin()" style="background:#e63946;">🚪 Cerrar Sesión</button>
     </div>
 
-    <!-- 1. MÓDULO PRINCIPAL DE CONSULTA (LO ÚNICO VISIBLE AL INICIO) -->
     <div class="contenedor" id="tarjeta">
         <img src="https://acceso-gym.vercel.app/logo-vidafit.png" alt="Logo Cliente" style="max-width: 200px; margin-bottom: 15px; display: inline-block;">
         <h1 id="mainTitulo">Cargando...</h1>
         <p class="subtitulo" id="mainSubtitulo">Por favor espere...</p>
         
         <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
+        <button id="btnLimpiarConsulta" class="btn-nav d-none" style="margin: 10px auto; display: block;" onclick="resetearPantalla()">🔄 Nueva Consulta</button>
 
-        <!-- AVISO DE RESULTADO DE CONSULTA -->
         <div id="aviso" class="pantalla-aviso"></div>
 
-        <!-- TARJETA CONTEXTUAL (SE MUESTRA SOLO AL CONSULTAR SOCIO) -->
         <div id="seccionSocioConsultado" class="d-none">
             
-            <!-- OPCIÓN DE EDICIÓN DE DATOS (SOLO ADMIN) -->
+            <!-- EDICIÓN DE DATOS (ADMIN O RECEPCIÓN SI EXISTE) -->
             <div id="containerEdicionAdmin" class="seccion-accion d-none">
                 <input type="hidden" id="txt-id-socio">
                 <input type="hidden" id="txt-documento-socio">
-                <div class="form-group mb-2">
+                <div>
                     <label>Nombre Completo:</label>
                     <input type="text" id="txt-nombre-socio" readonly>
                 </div>
-                <div class="form-group mb-2">
-                    <label>Teléfono:</label>
-                    <input type="text" id="txt-telefono-socio" readonly>
+                <div>
+                    <label>Teléfono / WhatsApp:</label>
+                    <input type="text" id="txt-telefono-socio" readonly placeholder="Sin registrar">
                 </div>
                 <button id="btn-editar-socio" class="btn-nav" style="width:100%" onclick="habilitarEdicion()">✏️ Editar Datos del Socio</button>
                 <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio()">💾 Guardar Cambios</button>
             </div>
 
-            <!-- MÓDULO DE REGISTRO Y PAGO (RECEPCIÓN Y ADMIN) -->
+            <!-- MÓDULO DE REGISTRO / RENOVACIÓN -->
             <div id="seccion-renovacion" class="seccion-accion d-none">
                 <h4 id="tituloSeccionPago" style="margin:0 0 10px 0; color:var(--branding-orange);">💳 Registrar Pago / Renovación</h4>
                 
-                <!-- Campo Nombre (se vuelve visible si es usuario NUEVO) -->
                 <div id="grupoNuevoSocio" class="d-none">
                     <label for="txt-nombre-nuevo">Nombre Completo del Nuevo Socio:</label>
                     <input type="text" id="txt-nombre-nuevo" placeholder="Ej: Juan Pérez">
+                    
+                    <label for="txt-telefono-nuevo">Teléfono / WhatsApp:</label>
+                    <input type="text" id="txt-telefono-nuevo" placeholder="Ej: 3001234567">
                 </div>
 
                 <label for="select-tipo-pago">Tipo de Pago:</label>
@@ -200,7 +191,7 @@
         </div>
     </div>
 
-    <!-- 2. MODAL DE GESTIÓN Y REGISTRO (PANEL DE CONTROL) -->
+    <!-- MODAL DE ADMINISTRACIÓN -->
     <div id="modalAdmin" class="modal">
         <div class="modal-contenido">
             <button class="btn-cerrar" onclick="cerrarAdmin()">✕</button>
@@ -225,6 +216,10 @@
                         <input type="text" id="regNombre" placeholder="Nombre del socio">
                     </div>
                     <div class="form-group">
+                        <label for="regTelefono">Teléfono / WhatsApp</label>
+                        <input type="text" id="regTelefono" placeholder="Ej: 3001234567">
+                    </div>
+                    <div class="form-group">
                         <label id="lblCategoria" for="regCategoria">Tipo de Plan</label>
                         <select id="regCategoria">
                             <option value="Mes" selected>Mensualidad</option>
@@ -242,7 +237,7 @@
         </div>
     </div>
 
-    <!-- 3. MODAL DE REPORTES Y CIERRE DE CAJA (SOLO ADMIN) -->
+    <!-- MODAL DE REPORTES -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -270,9 +265,7 @@
                 </div>
             </div>
 
-            <div id="resumen-totales" style="margin:15px 0; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; display:flex; justify-content:space-around; font-weight:bold;">
-                <!-- Totales calculados por JS -->
-            </div>
+            <div id="resumen-totales" style="margin:15px 0; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px; display:flex; justify-content:space-around; font-weight:bold;"></div>
 
             <div class="tabla-contenedor">
                 <table>
@@ -287,15 +280,12 @@
                             <th>Usuario</th>
                         </tr>
                     </thead>
-                    <tbody id="tbody-reportes">
-                        <!-- Filas dinámicas -->
-                    </tbody>
+                    <tbody id="tbody-reportes"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- NOTIFICACIÓN TOAST -->
     <div id="toast" class="toast-container">
         <span id="toastIcono"></span>
         <span id="toastTexto">Mensaje del sistema</span>
@@ -315,22 +305,11 @@
                 lblCategoria: "Tipo de Plan Asignado",
                 lblFecha: "Fecha de Pago / Inscripción",
                 btnSubmit: "Guardar / Registrar Socio"
-            },
-            "default": {
-                titulo: "Sistema de Validación Centralizado",
-                subtitulo: "Por favor, ingrese el código de verificación",
-                btnAdmin: "⚙️ Panel Control",
-                modalTitulo: "Gestor de Datos Genérico",
-                lblDocumento: "Identificador Único",
-                lblNombre: "Nombre / Descripción",
-                lblCategoria: "Categoría del Registro",
-                lblFecha: "Fecha de Vigencia",
-                btnSubmit: "Confirmar Registro"
             }
         };
 
         const clienteActual = "vidafit"; 
-        const ctx = DIACCIONARIO_TENANTS[clienteActual] || DIACCIONARIO_TENANTS["default"];
+        const ctx = DIACCIONARIO_TENANTS[clienteActual];
 
         document.getElementById("mainTitulo").textContent = ctx.titulo;
         document.getElementById("mainSubtitulo").textContent = ctx.subtitulo;
@@ -348,7 +327,6 @@
         const modalAdmin = document.getElementById('modalAdmin');
         const modalReportes = document.getElementById('modalReportes');
 
-        // Mantenimiento de Autofocus
         document.addEventListener('click', (e) => {
             if (!modalAdmin.classList.contains('visible') && !modalReportes.classList.contains('visible') && e.target.id !== 'btnAdmin') {
                 input.focus();
@@ -377,12 +355,14 @@
                 const respuesta = await fetch(`${URL_API}?action=consultar_socio&modo=acceso&documento=${documento}&cliente=${clienteActual}&_=${new Date().getTime()}`);
                 const data = await respuesta.json();
 
+                document.getElementById('btnLimpiarConsulta').classList.remove('d-none');
+
                 if (data.status === "success") {
                     document.getElementById('txt-documento-socio').value = documento;
 
                     if (data.encontrado) {
-                        // USUARIO REGISTRADO
                         document.getElementById('txt-nombre-socio').value = data.socio?.nombre || data.nombre;
+                        document.getElementById('txt-telefono-socio').value = data.socio?.telefono || data.telefono || '';
                         document.getElementById('txt-id-socio').value = data.socio?.id || '';
                         document.getElementById('grupoNuevoSocio').classList.add('d-none');
 
@@ -390,15 +370,15 @@
                             mostrarResultado("verde", `ACCESO AUTORIZADO<br><small>${data.motivo}</small>`, data.nombre);
                         } else {
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
-                            mostrarSeccionRenovacion(false); 
+                            mostrarSeccionRenovacion(false);
                         }
                         mostrarContenedorEdicionAdmin();
                     } else {
-                        // USUARIO NUEVO (NO REGISTRADO)
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
                         document.getElementById('grupoNuevoSocio').classList.remove('d-none');
                         document.getElementById('txt-nombre-nuevo').value = '';
-                        mostrarSeccionRenovacion(true); 
+                        document.getElementById('txt-telefono-nuevo').value = '';
+                        mostrarSeccionRenovacion(true);
                     }
                 } else {
                     throw new Error(data.message);
@@ -406,6 +386,7 @@
             } catch (error) {
                 console.error(error);
                 mostrarResultado("rojo", "No se pudo conectar con el servidor.", "Error Técnico");
+                input.disabled = false;
             }
         }
 
@@ -427,6 +408,7 @@
             input.focus();
             body.style.backgroundColor = "var(--bg-default)";
             aviso.style.display = "none";
+            document.getElementById('btnLimpiarConsulta').classList.add('d-none');
             ocultarSeccionSocio();
         }
 
@@ -442,11 +424,8 @@
         }
 
         function mostrarContenedorEdicionAdmin() {
-            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
-            if (usuarioSesion.rol === 'ADMIN') {
-                document.getElementById('seccionSocioConsultado').classList.remove('d-none');
-                document.getElementById('containerEdicionAdmin').classList.remove('d-none');
-            }
+            document.getElementById('seccionSocioConsultado').classList.remove('d-none');
+            document.getElementById('containerEdicionAdmin').classList.remove('d-none');
         }
 
         function ocultarSeccionSocio() {
@@ -455,7 +434,6 @@
             document.getElementById('containerEdicionAdmin').classList.add('d-none');
         }
 
-        // 💵 CÁLCULO DE PAGO (PASADÍA O MESES)
         function calcularMontoRenovacion() {
             const PRECIO_MES = 60000;
             const PRECIO_DIA = 10000;
@@ -477,7 +455,7 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 CONFIRMAR PAGO Y REGISTRAR SOCIO SI ES NUEVO
+        // 💳 REGISTRAR SOCIO + PAGO
         async function procesarRenovacion() {
             const documento = document.getElementById('txt-documento-socio').value || input.value.trim();
             const esNuevo = !document.getElementById('grupoNuevoSocio').classList.contains('d-none');
@@ -485,6 +463,10 @@
             const nombre = esNuevo 
                 ? document.getElementById('txt-nombre-nuevo').value.trim() 
                 : document.getElementById('txt-nombre-socio').value.trim();
+
+            const telefono = esNuevo 
+                ? document.getElementById('txt-telefono-nuevo').value.trim() 
+                : document.getElementById('txt-telefono-socio').value.trim();
 
             if (esNuevo && !nombre) {
                 mostrarToast('error', 'Por favor ingrese el nombre del nuevo socio.');
@@ -511,6 +493,7 @@
                             action: 'guardar_socio',
                             documento: documento,
                             nombre: nombre,
+                            telefono: telefono,
                             fecha_pago: new Date().toISOString().split('T')[0],
                             cliente: clienteActual
                         })
@@ -551,7 +534,7 @@
             }
         }
 
-        // ✏️ EDICIÓN DE SOCIOS (ADMIN)
+        // ✏️ EDICIÓN RÁPIDA DE TELÉFONO / NOMBRE
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -564,7 +547,6 @@
             const nombre = document.getElementById('txt-nombre-socio').value;
             const documento = document.getElementById('txt-documento-socio').value;
             const telefono = document.getElementById('txt-telefono-socio').value;
-            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
 
             try {
                 const res = await fetch(`${URL_API}?action=editar_socio`, {
@@ -574,8 +556,7 @@
                         id: idSocio,
                         nombre: nombre,
                         documento: documento,
-                        telefono: telefono,
-                        rol_usuario: usuarioSesion.rol
+                        telefono: telefono
                     })
                 });
 
@@ -594,7 +575,7 @@
             }
         }
 
-        // ⚙️ CONTROL DE SESIÓN Y MODAL ADMINISTRATIVO
+        // CONTROL DE SESIÓN Y ADMIN
         function abrirAdmin() {
             modalAdmin.classList.add('visible');
             const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
@@ -690,7 +671,7 @@
             }
         }
 
-        // 🔍 AUTOCOMPLETADO DENTRO DEL MODAL (EN CAMPO regDocumento)
+        // AUTOCOMPLETADO MODAL ADMIN
         const elRegDoc = document.getElementById('regDocumento');
         if (elRegDoc) {
             const consultarParaModal = async () => {
@@ -702,16 +683,19 @@
                     const data = await respuesta.json();
 
                     const elRegNombre = document.getElementById('regNombre');
+                    const elRegTel = document.getElementById('regTelefono');
                     const elRegFecha = document.getElementById('regFecha');
 
                     if (data.status === "success" && data.encontrado && data.socio) {
                         if (elRegNombre) elRegNombre.value = data.socio.nombre || '';
+                        if (elRegTel) elRegTel.value = data.socio.telefono || '';
                         if (elRegFecha && data.socio.fecha_pago) {
                             elRegFecha.value = data.socio.fecha_pago;
                         }
                         mostrarToast('success', 'Socio encontrado. Puede editar sus datos.');
                     } else {
                         if (elRegNombre) elRegNombre.value = '';
+                        if (elRegTel) elRegTel.value = '';
                         if (elRegFecha) elRegFecha.value = new Date().toISOString().split('T')[0];
                     }
                 } catch (error) {
@@ -723,27 +707,22 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // 💾 GUARDAR / CREAR / EDITAR SOCIO (UPSERT) DESDE EL MODAL
+        // GUARDAR DESDE MODAL
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
             const elDoc = document.getElementById('regDocumento');
             const elNom = document.getElementById('regNombre');
+            const elTel = document.getElementById('regTelefono');
             const elFec = document.getElementById('regFecha');
 
             const documento = elDoc ? elDoc.value.trim() : '';
             const nombre = elNom ? elNom.value.trim() : '';
+            const telefono = elTel ? elTel.value.trim() : '';
             const fechaPago = elFec ? elFec.value : '';
 
-            if (!documento) {
-                mostrarToast('error', 'Por favor ingrese el documento');
-                if (elDoc) elDoc.focus();
-                return;
-            }
-
-            if (!nombre) {
-                mostrarToast('error', 'Por favor ingrese el nombre del socio');
-                if (elNom) elNom.focus();
+            if (!documento || !nombre) {
+                mostrarToast('error', 'Por favor ingrese el documento y nombre');
                 return;
             }
 
@@ -751,6 +730,7 @@
                 action: 'guardar_socio',
                 documento: documento,
                 nombre: nombre,
+                telefono: telefono,
                 fecha_pago: fechaPago,
                 cliente: clienteActual
             };
@@ -766,16 +746,16 @@
                 if (data.status === "success") {
                     mostrarToast('success', data.message || 'Socio guardado correctamente');
                     cerrarAdmin();
+                    resetearPantalla();
                 } else {
                     mostrarToast('error', data.message || 'Error al guardar socio');
                 }
             } catch (error) {
-                console.error(error);
                 mostrarToast('error', 'Error de conexión con el servidor.');
             }
         }
 
-        // 📊 REPORTES DE CAJA
+        // REPORTES
         function abrirReportes() {
             modalReportes.classList.add('visible');
             const hoy = new Date().toISOString().split('T')[0];
@@ -838,7 +818,6 @@
             setTimeout(() => toast.classList.remove('show'), 3500);
         }
 
-        // EVALUAR ESTADO AL CARGAR PÁGINA
         document.addEventListener('DOMContentLoaded', evaluarVistaSesion);
     </script>
 </body>
