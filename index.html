@@ -132,7 +132,6 @@
 
         <div id="seccionSocioConsultado" class="d-none">
             
-            <!-- BLOQUE DE EDICIÓN: Solo para Admin -->
             <div id="containerEdicionAdmin" class="seccion-accion d-none">
                 <input type="hidden" id="txt-id-socio">
                 <input type="hidden" id="txt-documento-socio">
@@ -148,7 +147,6 @@
                 <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio(event)">💾 Guardar Cambios</button>
             </div>
 
-            <!-- MÓDULO DE REGISTRO / RENOVACIÓN -->
             <div id="seccion-renovacion" class="seccion-accion d-none">
                 <h4 id="tituloSeccionPago" style="margin:0 0 10px 0; color:var(--branding-orange);">💳 Registrar Pago / Renovación</h4>
                 
@@ -224,22 +222,22 @@
                     <div class="form-group">
                         <label id="lblCategoria" for="regCategoria">Tipo de Plan</label>
                         <select id="regCategoria">
-                            <option value="Mes" selected>Mensualidad</option>
-                            <option value="Semestral">Semestral</option>
-                            <option value="Anual">Anual</option>
+                            <option value="Mes" selected>Mensualidad ($60.000)</option>
+                            <option value="Semestral">Semestral ($360.000)</option>
+                            <option value="Anual">Anual ($720.000)</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label id="lblFecha" for="regFecha">Fecha de Inicio / Pago</label>
                         <input type="date" id="regFecha" required>
                     </div>
-                    <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar Socio</button>
+                    <button type="submit" id="btnSubmitAdmin" class="btn-block">Guardar / Registrar Socio</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES CON VISTA DE REPORTE SEPARADA -->
+    <!-- MODAL DE REPORTES CON NOMBRES MEJORADOS -->
     <div id="modalReportes" class="modal">
         <div class="modal-contenido ancho-especial">
             <button class="btn-cerrar" onclick="cerrarReportes()">✕</button>
@@ -257,12 +255,12 @@
                 <div style="flex:1; min-width:130px;">
                     <label style="font-size:0.8rem; color:#aaa;">Vista de Reporte:</label>
                     <select id="rep-tipo" style="width:100%; padding:8px; background:#2c2c2e; border:1px solid #444; color:#fff; border-radius:5px;">
-                        <option value="FINANCIERO" selected>💰 Solo Dinero (Caja)</option>
-                        <option value="ACCESOS">🎟️ Solo Accesos (Asistencias)</option>
-                        <option value="INSCRIPCION">📝 Nuevos Inscritos</option>
-                        <option value="RENOVACION_MES">🔄 Renovaciones</option>
+                        <option value="FINANCIERO" selected>💵 Caja y Movimientos Financieros</option>
+                        <option value="ACCESOS">🎟️ Control de Asistencia y Accesos</option>
+                        <option value="INSCRIPCION">📝 Nuevas Inscripciones</option>
+                        <option value="RENOVACION_MES">🔄 Renovaciones de Mes</option>
                         <option value="DIA">☀️ Pasadías / Días</option>
-                        <option value="TODOS">📋 Todos los Registros</option>
+                        <option value="TODOS">📋 Historial Completo</option>
                     </select>
                 </div>
                 <div style="flex:1; min-width:130px; display:flex; align-items:flex-end;">
@@ -465,7 +463,7 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR PAGO (DISPARA INSCRIPCION SI ES SOCIO NUEVO)
+        // 💳 REGISTRAR PAGO RECEPCIÓN
         async function procesarRenovacion(event) {
             const btn = document.getElementById('btnProcesarPago');
             if (btn) btn.disabled = true;
@@ -511,7 +509,9 @@
                             nombre: nombre,
                             telefono: telefono,
                             fecha_pago: new Date().toISOString().split('T')[0],
-                            cliente: clienteActual
+                            cliente: clienteActual,
+                            usuario_registro: usuarioSesion.username,
+                            registrar_caja: false // Se registra en la llamada posterior
                         })
                     });
                     const dataCrear = await resCrear.json();
@@ -553,7 +553,7 @@
             }
         }
 
-        // ✏️ EDICIÓN DE DATOS (ADMIN)
+        // ✏️ EDICIÓN (ADMIN)
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -729,7 +729,7 @@
             elRegDoc.addEventListener('blur', consultarParaModal);
         }
 
-        // GUARDAR DESDE MODAL ADMIN
+        // GUARDAR DESDE MODAL ADMIN (REGISTRA COBRO EN CAJA AUTOMÁTICAMENTE)
         async function guardarRegistro(event) {
             if (event) event.preventDefault();
 
@@ -737,6 +737,7 @@
             const elNom = document.getElementById('regNombre');
             const elTel = document.getElementById('regTelefono');
             const elFec = document.getElementById('regFecha');
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || { username: 'admin' };
 
             const documento = elDoc ? elDoc.value.replace(/[^0-9]/g, '') : '';
             const nombre = elNom ? elNom.value.trim() : '';
@@ -754,6 +755,9 @@
                 nombre: nombre,
                 telefono: telefono,
                 fecha_pago: fechaPago,
+                monto: 60000,
+                registrar_caja: true,
+                usuario_registro: usuarioSesion.username,
                 cliente: clienteActual
             };
 
@@ -766,7 +770,7 @@
                 const data = await respuesta.json();
 
                 if (data.status === "success") {
-                    mostrarToast('success', data.message || 'Socio guardado correctamente');
+                    mostrarToast('success', 'Socio inscrito y pago de $60.000 registrado en caja.');
                     cerrarAdmin();
                     resetearPantalla();
                 } else {
@@ -822,10 +826,10 @@
                         } else if (log.tipo_ingreso === 'DIA') {
                             badgeColor = '#e2b93b';
                             labelTipo = 'PASADÍA / DÍA';
-                        } else if (log.tipo_ingreso === 'ACCESO') {
+                        } else if (log.tipo_ingreso === 'ACCESO' || parseFloat(log.monto) === 0) {
                             badgeColor = '#8d99ae';
-                            labelTipo = 'ACCESO INGRESO';
-                        } else if (log.tipo_ingreso === 'RENOVACION_MES') {
+                            labelTipo = 'CONTROL ACCESO';
+                        } else if (log.tipo_ingreso === 'RENOVACION_MES' || log.tipo_ingreso === 'MENSUALIDAD') {
                             labelTipo = 'RENOVACIÓN MES';
                         }
 
