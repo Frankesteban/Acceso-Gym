@@ -123,14 +123,17 @@
         <h1 id="mainTitulo">Cargando...</h1>
         <p class="subtitulo" id="mainSubtitulo">Por favor espere...</p>
         
-        <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus />
+        <!-- 🛡️ Filtro estricto: Solo números -->
+        <input type="text" id="documentoInput" autocomplete="off" placeholder="00000000" autofocus 
+               inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
+        
         <button id="btnLimpiarConsulta" class="btn-nav d-none" style="margin: 10px auto; display: block;" onclick="resetearPantalla()">🔄 Nueva Consulta</button>
 
         <div id="aviso" class="pantalla-aviso"></div>
 
         <div id="seccionSocioConsultado" class="d-none">
             
-            <!-- EDICIÓN DE DATOS (ADMIN O RECEPCIÓN SI EXISTE) -->
+            <!-- 🔐 BLOQUE DE EDICIÓN: Oculto para recepción; visible solo si hay sesión ADMIN activa -->
             <div id="containerEdicionAdmin" class="seccion-accion d-none">
                 <input type="hidden" id="txt-id-socio">
                 <input type="hidden" id="txt-documento-socio">
@@ -140,10 +143,10 @@
                 </div>
                 <div>
                     <label>Teléfono / WhatsApp:</label>
-                    <input type="text" id="txt-telefono-socio" readonly placeholder="Sin registrar">
+                    <input type="text" id="txt-telefono-socio" readonly placeholder="Sin registrar" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                 </div>
                 <button id="btn-editar-socio" class="btn-nav" style="width:100%" onclick="habilitarEdicion()">✏️ Editar Datos del Socio</button>
-                <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio()">💾 Guardar Cambios</button>
+                <button id="btn-guardar-socio" class="btn-block btn-success d-none" onclick="guardarEdicionSocio(event)">💾 Guardar Cambios</button>
             </div>
 
             <!-- MÓDULO DE REGISTRO / RENOVACIÓN -->
@@ -155,7 +158,7 @@
                     <input type="text" id="txt-nombre-nuevo" placeholder="Ej: Juan Pérez">
                     
                     <label for="txt-telefono-nuevo">Teléfono / WhatsApp:</label>
-                    <input type="text" id="txt-telefono-nuevo" placeholder="Ej: 3001234567">
+                    <input type="text" id="txt-telefono-nuevo" placeholder="Ej: 3001234567" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                 </div>
 
                 <label for="select-tipo-pago">Tipo de Pago:</label>
@@ -185,7 +188,7 @@
                     Total a cobrar: $<span id="lbl-monto-total">60.000</span>
                 </div>
 
-                <button class="btn-block btn-success" onclick="procesarRenovacion()">Confirmar Pago y Registrar</button>
+                <button id="btnProcesarPago" class="btn-block btn-success" onclick="procesarRenovacion(event)">Confirmar Pago y Registrar</button>
             </div>
 
         </div>
@@ -209,7 +212,7 @@
                 <div id="camposFormulario" style="display: none;">
                     <div class="form-group">
                         <label id="lblDocumento" for="regDocumento">Documento</label>
-                        <input type="text" id="regDocumento" required autocomplete="off">
+                        <input type="text" id="regDocumento" required autocomplete="off" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                     <div class="form-group">
                         <label id="lblNombre" for="regNombre">Nombre Completo</label>
@@ -217,7 +220,7 @@
                     </div>
                     <div class="form-group">
                         <label for="regTelefono">Teléfono / WhatsApp</label>
-                        <input type="text" id="regTelefono" placeholder="Ej: 3001234567">
+                        <input type="text" id="regTelefono" placeholder="Ej: 3001234567" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                     <div class="form-group">
                         <label id="lblCategoria" for="regCategoria">Tipo de Plan</label>
@@ -340,9 +343,9 @@
             }
         });
 
-        // 🔍 CONSULTAR SOCIO EN PANTALLA PRINCIPAL
+        // 🔍 CONSULTAR SOCIO
         async function procesarAcceso() {
-            const documento = input.value.trim();
+            const documento = input.value.replace(/[^0-9]/g, '');
             if (!documento) return;
 
             input.disabled = true;
@@ -372,6 +375,7 @@
                             mostrarResultado("rojo", `MENSUALIDAD VENCIDA<br><small>${data.motivo}</small>`, data.nombre);
                             mostrarSeccionRenovacion(false);
                         }
+                        // 🔐 Solo se muestra si el usuario logueado es ADMIN
                         mostrarContenedorEdicionAdmin();
                     } else {
                         mostrarResultado("rojo", data.motivo, "Usuario No Registrado");
@@ -423,9 +427,15 @@
             calcularMontoRenovacion();
         }
 
+        // 🔐 SEGURIDAD: Solo despliega si hay sesión de ADMIN
         function mostrarContenedorEdicionAdmin() {
-            document.getElementById('seccionSocioConsultado').classList.remove('d-none');
-            document.getElementById('containerEdicionAdmin').classList.remove('d-none');
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
+            if (usuarioSesion.rol === 'ADMIN') {
+                document.getElementById('seccionSocioConsultado').classList.remove('d-none');
+                document.getElementById('containerEdicionAdmin').classList.remove('d-none');
+            } else {
+                document.getElementById('containerEdicionAdmin').classList.add('d-none');
+            }
         }
 
         function ocultarSeccionSocio() {
@@ -455,9 +465,12 @@
             document.getElementById('lbl-monto-total').textContent = total.toLocaleString('es-CO');
         }
 
-        // 💳 REGISTRAR SOCIO + PAGO
-        async function procesarRenovacion() {
-            const documento = document.getElementById('txt-documento-socio').value || input.value.trim();
+        // 💳 REGISTRAR SOCIO + PAGO (CON BLINDAJE CONTRA DOBLE SUBMIT)
+        async function procesarRenovacion(event) {
+            const btn = document.getElementById('btnProcesarPago');
+            if (btn) btn.disabled = true;
+
+            const documento = (document.getElementById('txt-documento-socio').value || input.value).replace(/[^0-9]/g, '');
             const esNuevo = !document.getElementById('grupoNuevoSocio').classList.contains('d-none');
             
             const nombre = esNuevo 
@@ -465,11 +478,12 @@
                 : document.getElementById('txt-nombre-socio').value.trim();
 
             const telefono = esNuevo 
-                ? document.getElementById('txt-telefono-nuevo').value.trim() 
-                : document.getElementById('txt-telefono-socio').value.trim();
+                ? document.getElementById('txt-telefono-nuevo').value.replace(/[^0-9]/g, '') 
+                : document.getElementById('txt-telefono-socio').value.replace(/[^0-9]/g, '');
 
-            if (esNuevo && !nombre) {
-                mostrarToast('error', 'Por favor ingrese el nombre del nuevo socio.');
+            if (esNuevo && nombre.length < 3) {
+                mostrarToast('error', 'Ingrese un nombre completo válido.');
+                if (btn) btn.disabled = false;
                 document.getElementById('txt-nombre-nuevo').focus();
                 return;
             }
@@ -501,6 +515,7 @@
                     const dataCrear = await resCrear.json();
                     if (dataCrear.status !== 'success') {
                         mostrarToast('error', 'Error al registrar al socio nuevo.');
+                        if (btn) btn.disabled = false;
                         return;
                     }
                 }
@@ -523,7 +538,7 @@
 
                 const dataPago = await resPago.json();
                 if (dataPago.status === 'success') {
-                    mostrarToast('success', esNuevo ? 'Socio registrado y pago procesado con éxito.' : 'Renovación exitosa.');
+                    mostrarToast('success', esNuevo ? 'Socio registrado y pago procesado.' : 'Renovación exitosa.');
                     resetearPantalla();
                 } else {
                     mostrarToast('error', dataPago.message || 'Error al procesar el pago.');
@@ -531,10 +546,12 @@
             } catch (error) {
                 console.error('Error:', error);
                 mostrarToast('error', 'Error de conexión con el servidor.');
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 
-        // ✏️ EDICIÓN RÁPIDA DE TELÉFONO / NOMBRE
+        // ✏️ EDICIÓN RÁPIDA DE TELÉFONO / NOMBRE (ADMIN)
         function habilitarEdicion() {
             document.getElementById('txt-nombre-socio').removeAttribute('readonly');
             document.getElementById('txt-telefono-socio').removeAttribute('readonly');
@@ -542,7 +559,8 @@
             document.getElementById('btn-guardar-socio').classList.remove('d-none');
         }
 
-        async function guardarEdicionSocio() {
+        async function guardarEdicionSocio(event) {
+            const usuarioSesion = JSON.parse(localStorage.getItem('usuario_vidafit')) || {};
             const idSocio = document.getElementById('txt-id-socio').value;
             const nombre = document.getElementById('txt-nombre-socio').value;
             const documento = document.getElementById('txt-documento-socio').value;
@@ -556,7 +574,8 @@
                         id: idSocio,
                         nombre: nombre,
                         documento: documento,
-                        telefono: telefono
+                        telefono: telefono,
+                        rol_usuario: usuarioSesion.rol
                     })
                 });
 
@@ -654,6 +673,7 @@
             localStorage.removeItem('usuario_vidafit');
             evaluarVistaSesion();
             cerrarAdmin();
+            resetearPantalla();
             mostrarToast('success', 'Sesión de administración cerrada');
         }
 
@@ -675,7 +695,7 @@
         const elRegDoc = document.getElementById('regDocumento');
         if (elRegDoc) {
             const consultarParaModal = async () => {
-                const documento = elRegDoc.value.trim();
+                const documento = elRegDoc.value.replace(/[^0-9]/g, '');
                 if (!documento) return;
 
                 try {
@@ -716,13 +736,13 @@
             const elTel = document.getElementById('regTelefono');
             const elFec = document.getElementById('regFecha');
 
-            const documento = elDoc ? elDoc.value.trim() : '';
+            const documento = elDoc ? elDoc.value.replace(/[^0-9]/g, '') : '';
             const nombre = elNom ? elNom.value.trim() : '';
-            const telefono = elTel ? elTel.value.trim() : '';
+            const telefono = elTel ? elTel.value.replace(/[^0-9]/g, '') : '';
             const fechaPago = elFec ? elFec.value : '';
 
-            if (!documento || !nombre) {
-                mostrarToast('error', 'Por favor ingrese el documento y nombre');
+            if (!documento || nombre.length < 3) {
+                mostrarToast('error', 'Documento válido y nombre son obligatorios');
                 return;
             }
 
