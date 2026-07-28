@@ -76,7 +76,7 @@
             background: #1c1c1e; padding: 30px; border-radius: 12px;
             width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto;
         }
-        .modal-contenido.ancho-especial { max-width: 900px; }
+        .modal-contenido.ancho-especial { max-width: 980px; }
         .modal-contenido h2 { font-family: 'Bebas Neue', cursive; font-size: 2rem; margin-top: 0; color: var(--branding-orange); letter-spacing: 1px; }
         
         .form-group { margin-bottom: 15px; text-align: left; }
@@ -208,10 +208,10 @@
             <form id="formRegistro" onsubmit="guardarRegistro(event)">
                 <div id="camposFormulario" style="display: none;">
                     
-                    <!-- ⚙️ SECCIÓN DESPLEGABLE DE TARIFAS (OCULTA POR DEFECTO) -->
+                    <!-- ⚙️ SECCIÓN DESPLEGABLE DE TARIFAS -->
                     <details style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 140, 0, 0.4); border-radius: 8px; margin-bottom: 15px; padding: 5px 10px;">
                         <summary style="cursor: pointer; font-size: 0.85rem; font-weight: bold; color: var(--branding-orange); padding: 8px 0; outline: none; user-select: none;">
-                            ⚙️ Configurar Tarifas del Gimnasio
+                            ⚙️ Configurar Tarifas del Gimnasio (Desplegar)
                         </summary>
                         <div style="padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 5px;">
                             <div style="display: flex; gap: 10px;">
@@ -278,10 +278,11 @@
                         <option value="TODOS">📋 Historial Completo</option>
                     </select>
                 </div>
-                <div style="flex:1; min-width:240px; display:flex; align-items:flex-end; gap:5px;">
+                <div style="flex:1; min-width:320px; display:flex; align-items:flex-end; gap:5px;">
                     <button class="btn-block" style="margin:0; padding:9px;" onclick="consultarReportes()">🔍 Filtrar</button>
                     <button class="btn-block btn-success" style="margin:0; padding:9px; width:auto;" onclick="consultarReportes()" title="Actualizar Datos">🔄</button>
-                    <button class="btn-block btn-success" style="margin:0; padding:9px 12px; width:auto; background:#107c41; color:white; height:38px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;" onclick="exportarExcel()" title="Descargar Excel">📥 Excel</button>
+                    <button class="btn-block btn-success" style="margin:0; padding:9px 12px; width:auto; background:#107c41; color:white; height:38px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;" onclick="exportarExcel()" title="Descargar Excel de Transacciones">📥 Excel Movimientos</button>
+                    <button class="btn-block btn-success" style="margin:0; padding:9px 12px; width:auto; background:#4a4e69; color:white; height:38px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box;" onclick="exportarReporteSocios()" title="Descargar Listado Completo de Socios">👥 Exportar Socios</button>
                 </div>
             </div>
 
@@ -835,7 +836,7 @@
             modalReportes.classList.add('visible');
             
             const ahora = new Date();
-            const year = me = ahora.getFullYear();
+            const year = ahora.getFullYear();
             const month = String(ahora.getMonth() + 1).padStart(2, '0');
             const day = String(ahora.getDate()).padStart(2, '0');
             const hoyLocal = `${year}-${month}-${day}`;
@@ -920,7 +921,7 @@
             }
         }
 
-        // 📥 EXPORTAR REPORTE A EXCEL
+        // 📥 EXPORTAR REPORTE DE TRANSACCIONES A EXCEL
         function exportarExcel() {
             const tbody = document.getElementById('tbody-reportes');
             const filas = tbody.querySelectorAll('tr');
@@ -952,7 +953,7 @@
             
             const fInicio = document.getElementById('rep-fecha-inicio').value || 'reporte';
             const fFin = document.getElementById('rep-fecha-fin').value || 'caja';
-            const nombreArchivo = `Reporte_VidaFit_${fInicio}_al_${fFin}.csv`;
+            const nombreArchivo = `Reporte_Movimientos_VidaFit_${fInicio}_al_${fFin}.csv`;
 
             const link = document.createElement("a");
             if (link.download !== undefined) {
@@ -964,7 +965,54 @@
                 link.click();
                 document.body.removeChild(link);
                 
-                mostrarToast('success', 'Reporte descargado correctamente.');
+                mostrarToast('success', 'Reporte de movimientos descargado.');
+            }
+        }
+
+        // 👥 EXPORTAR LISTADO COMPLETO DE SOCIOS A EXCEL (.CSV)
+        async function exportarReporteSocios() {
+            try {
+                mostrarToast('success', 'Generando reporte de socios...');
+                const res = await fetch(`${URL_API}?action=obtener_miembros&cliente=${clienteActual}&nocache=${new Date().getTime()}`);
+                const data = await res.json();
+
+                if (data.status === 'success' && data.miembros && data.miembros.length > 0) {
+                    let csvContent = "ID;Documento;Nombre Completo;Telefono / WhatsApp;Fecha Vencimiento;Estado Cuenta\n";
+
+                    data.miembros.forEach(m => {
+                        const doc    = `"${m.documento}"`;
+                        const nombre = `"${m.nombre.replace(/"/g, '""')}"`;
+                        const tel    = `"${m.telefono}"`;
+                        const fecha  = `"${m.fecha_pago}"`;
+                        const estado = `"${m.estado}"`;
+
+                        csvContent += `${m.id};${doc};${nombre};${tel};${fecha};${estado}\n`;
+                    });
+
+                    const BOM = "\uFEFF";
+                    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const nombreArchivo = `Listado_Socios_VidaFit_${hoy}.csv`;
+
+                    const link = document.createElement("a");
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", nombreArchivo);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        mostrarToast('success', 'Lista de socios descargada correctamente.');
+                    }
+                } else {
+                    mostrarToast('error', 'No hay socios registrados en la base de datos.');
+                }
+            } catch (error) {
+                console.error('Error al exportar socios:', error);
+                mostrarToast('error', 'Error al consultar la lista de socios.');
             }
         }
 
